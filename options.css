@@ -1,0 +1,82 @@
+body {
+    margin: 0;
+    font-size: 12px
+}
+
+ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    width: 300px;
+    background-color: #f1f1f1;
+    position: fixed;
+    height: 100%;
+    overflow: auto;
+}
+
+li {
+    margin:0;
+}
+
+li a.item, a.functional {
+    display: block;
+    color: #000;
+    padding: 8px 16px;
+    text-decoration: none;
+    line-height: 18px;
+    background-color: #ccc;
+}
+
+li a.active {
+    background-color: #2C8F30;
+    color: white;
+}
+
+li a.item:hover:not(.active) {
+    background-color: #aaa;
+    color: white;
+}
+
+a.functional  {
+    vertical-align: top;
+    display: inline-block;
+    width: 100px;
+	background-color: #d3394c;
+	text-align: center;
+    padding: 8px 16px;
+    line-height: 18px;
+	color: #fff;
+	text-decoration: none;
+    margin: 0;
+}
+a.functional:hover {
+	background-color: #722040;
+	color: #fff;
+}
+
+div.config {
+	margin-left:300px;
+	padding:1px 16px;
+	height:100%;"
+}
+.code-column {
+    float:left;
+    padding:5px;
+    width: 100%;
+}
+.code-column h2{
+    font-size:15px;
+    background:yellow;
+    width: 100%;
+}
+.codeview {
+    width:200px;
+    height:400px;
+    border:1px solid #ccc;
+    position:relative;
+    width: 100%;
+}
+
+span.gray {
+    color: #ccc;
+}

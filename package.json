@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "babel-version": "babel --version",
+    "babel-watch": "babel es6.jsx --watch --out-file jtree.js",
+    "start": "babel es6.jsx --watch --out-file jtree.js"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.6.5"
+  }
+}
