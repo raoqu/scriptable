@@ -56,6 +56,7 @@ function storeCurrentItem() {
       item.name = $('#name').val();
       item.domain = $('#domain').val();
       item.code = $('#code').text();
+      item.type = $('.type-select').val();
       if( ! item.name && ! item.domain && ! item.code ) {
         var a = $('li>a.item[key="' + key + '"]');
         if( a && a.length> 0 ) {
@@ -67,7 +68,7 @@ function storeCurrentItem() {
     }
     var data = JSON.stringify(config);
     //localStorage.setItem(OPTION_KEY, data);
-    chrome.storage.sync.set({noryalScriptable: data});
+    chrome.storage.local.set({noryalScriptable: data});
     return item;
     // trigger content script to reload configuration
     //fakeClick(event, document.getElementById('reloadConfig'));
@@ -129,6 +130,8 @@ function modifyItem(key) {
   currentConfig = item;
   $('#name').val(item.name);
   $('#domain').val(item.domain);
+  $('.type-select').val(item.type || "click");
+  $('.type-select').trigger("chosen:updated");
 
   $('li>a.item').removeClass('active');
   $('li>a.item[key="' + key + '"]').addClass('active');
@@ -138,7 +141,7 @@ function modifyItem(key) {
 function addListItem(key, name, active) {
   key = '' + key;
   $('.configlist').append('<li><a class="item' + (active ? ' active' : '') + '" href="#" key="' + key + '">' + name + '</a></li>');
-  $('li>a.item[key="' + key + '"]').on('click', function(e){ 
+  $('li>a.item[key="' + key + '"]').click(function(e){ 
     var target = $(e.target);
     if( target && target.length > 0 ) {
       var key = target.attr('key');
@@ -189,12 +192,16 @@ function loadConfiguration(cfg) {
 }
 
 $(function(){
-  chrome.storage.sync.get({noryalScriptable: JSON.stringify(config)}, function(storageData){
+  chrome.storage.local.get({noryalScriptable: JSON.stringify(config)}, function(storageData){
     var data = storageData[OPTION_KEY] || '[]';
     if( data ) {
       var cfg = JSON.parse(data);
       loadConfiguration(cfg);
     }
+  });
+
+  $(".type-select").chosen({
+    disable_search_threshold: 10
   });
 })
 

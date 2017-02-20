@@ -4,12 +4,14 @@
   <link rel="stylesheet" type="text/css" href="codeflask.css"></link>
   <link rel="stylesheet" href="lib/prism.min.css">
   <script src="lib/prism.min.js"></script>
+  <link rel="stylesheet" href="css/chosen.min.css">
   <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css"></link>
   <link rel="stylesheet" type="text/css" href="options.css"></link>
   <link rel="stylesheet" href="css/input.css">
   <script type="text/javascript" src="jquery-3.1.1.min.js"></script>
   <!--<script type="text/javascript" src="js/bootstrap.min.js"></script>-->
   <script type="text/javascript" src="codeflask.js"></script>
+  <script type="text/javascript" src="js/chosen.jquery.min.js"></script>
   <script type="text/javascript" src="optionhead.js"></script>
 </head>
 <body>
@@ -30,6 +32,15 @@
       <label for="smFormGroupInput" class="col-sm-2 col-form-label col-form-label-sm">URL(pattern)</label>
       <div class="col-sm-10">
         <input class="form-control form-control-sm" id="domain" placeholder="http://*.domain.com/*">
+      </div>
+    </div>
+    <div class="form-group row">
+      <label for="smFormGroupInput" class="col-sm-2 col-form-label col-form-label-sm">type</label>
+      <div class="col-sm-10">
+        <select class="type-select" id="type">
+          <option value="click">Execute on click</option>
+          <option value="load">Execute on page load</option>
+        </select>
       </div>
     </div>
     <div class="form-group row">

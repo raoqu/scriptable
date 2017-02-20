@@ -3,7 +3,7 @@ body {
     font-size: 12px
 }
 
-ul {
+ul.configlist {
     list-style-type: none;
     margin: 0;
     padding: 0;
@@ -14,11 +14,11 @@ ul {
     overflow: auto;
 }
 
-li {
+ul.configlist>li {
     margin:0;
 }
 
-li a.item, a.functional {
+ul.configlist>li a.item, a.functional {
     display: block;
     color: #000;
     padding: 8px 16px;
@@ -27,12 +27,12 @@ li a.item, a.functional {
     background-color: #ccc;
 }
 
-li a.active {
+ul.configlist>li a.active {
     background-color: #2C8F30;
     color: white;
 }
 
-li a.item:hover:not(.active) {
+ul.configlist>li a.item:hover:not(.active) {
     background-color: #aaa;
     color: white;
 }
@@ -52,6 +52,10 @@ a.functional  {
 a.functional:hover {
 	background-color: #722040;
 	color: #fff;
+}
+
+#type_chosen {
+    width: 200px;
 }
 
 div.config {

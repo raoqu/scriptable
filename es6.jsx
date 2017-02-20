@@ -12,18 +12,28 @@ var defaultConfig = {
 var config = [defaultConfig];
 var OPTION_KEY = 'noryalScriptable';
 
-function reloadConfig() {
-  chrome.storage.sync.get({noryalScriptable: JSON.stringify(config)}, function(storageData){
+function reloadConfig(callback) {
+  chrome.storage.local.get({noryalScriptable: JSON.stringify(config)}, function(storageData){
     var data = storageData[OPTION_KEY] || '[]';
     if( data ) {
       config = JSON.parse(data);
-      console.log('load config: ' + config.length + ' items')
+      for( var i = 0; i < config.length; i ++ ) {
+        config[i].type = config[i].type || "click";
+      }
+      console.log('load config: ' + config.length + ' items');
+
+      if( callback ) {
+        callback();
+      }
     }
   });
 }
 
 $(function(){
-  reloadConfig();
+  // reload config and execute scripts for onLoad event
+  reloadConfig(function(){
+    executeForType('load');
+  });
 
   $('a.extentionTrigger').on('click', function(e) {
     var action = $(e.target).attr('action');
@@ -33,7 +43,7 @@ $(function(){
   });
 })
 
-function trigger() {
+function executeForType(type) {
   if( config.length < 1 ) {
     reloadConfig();
   }
@@ -61,6 +71,10 @@ function trigger() {
       console.log('not found in ' + config.length + ' items')
     }
   }
+}
+
+function trigger() {
+  executeForType('click');
 }
 
 chrome.storage.onChanged.addListener(function(changes, namespace) {
