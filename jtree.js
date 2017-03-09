@@ -58,13 +58,15 @@ function executeForType(type) {
       pattern = pattern.replace(/\*/g, '.*');
       pattern = pattern.replace(/\?/g, '.?');
 
-      var code = config[i].code;
-      name = config[i].name;
-      var regx = eval('/' + pattern + '/');
-      if (url.match(regx)) {
-        console.log('match:' + pattern);
-        found = true;
-        eval(code);
+      if (config[i].type == type) {
+        var code = config[i].code;
+        name = config[i].name;
+        var regx = eval('/' + pattern + '/');
+        if (url.match(regx)) {
+          console.log('match:' + pattern);
+          found = true;
+          eval(code);
+        }
       }
     }
     if (!found) {
