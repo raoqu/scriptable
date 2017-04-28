@@ -5,6 +5,6 @@
     "start": "babel es6.jsx --watch --out-file jtree.js"
   },
   "devDependencies": {
-    "babel-cli": "^6.6.5"
+    "babel-cli": "^6.24.0"
   }
 }

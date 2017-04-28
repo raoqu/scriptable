@@ -6,82 +6,84 @@ var defaultConfig = {
   key: '-1',
   name: 'default demo',
   domain: '*',
-  code: 'alert(window.location.href);'
+  code: 'console.log(window.location.href);'
 };
 
 var config = [defaultConfig];
 var OPTION_KEY = 'noryalScriptable';
 
 function reloadConfig(callback) {
-  chrome.storage.local.get({noryalScriptable: JSON.stringify(config)}, function(storageData){
+  chrome.storage.local.get({ noryalScriptable: JSON.stringify(config) }, function (storageData) {
     var data = storageData[OPTION_KEY] || '[]';
-    if( data ) {
+    if (data) {
       config = JSON.parse(data);
-      for( var i = 0; i < config.length; i ++ ) {
+      for (var i = 0; i < config.length; i++) {
         config[i].type = config[i].type || "click";
       }
       console.log('load config: ' + config.length + ' items');
 
-      if( callback ) {
+      if (callback) {
         callback();
       }
     }
   });
 }
 
-$(function(){
+$(function () {
   // reload config and execute scripts for onLoad event
-  reloadConfig(function(){
+  reloadConfig(function () {
     executeForType('load');
   });
 
-  $('a.extentionTrigger').on('click', function(e) {
+  $('a.extentionTrigger').on('click', function (e) {
     var action = $(e.target).attr('action');
-    if( action == 'reloadConfig') {
+    if (action == 'reloadConfig') {
       reloadConfig();
     }
   });
-})
+});
 
 function executeForType(type) {
-  if( config.length < 1 ) {
+  if (config.length < 1) {
     reloadConfig();
   }
   var name = '';
   var found = false;
   var url = window.location.href;
-  if( url ) {
-    for( var i = 0; i < config.length; i ++ ) {
+  
+  if (url) {
+    for (var i = 0; i < config.length; i++) {
       var pattern = config[i].domain || '*';
       pattern = pattern.replace(/\//g, '\\/');
       pattern = pattern.replace(/\./g, '\\.');
       pattern = pattern.replace(/\*/g, '.*');
       pattern = pattern.replace(/\?/g, '.?');
 
-      if( config[i].type == type) {
+      if (config[i].type == type) {
         var code = config[i].code;
         name = config[i].name;
         var regx = eval('/' + pattern + '/');
-        if( url.match(regx)) {
-          console.log('match:' + pattern)
+        if (url.match(regx)) {
           found = true;
           eval(code);
         }
       }
     }
-    if( ! found ) {
-      console.log('not found in ' + config.length + ' items')
+    if (!found) {
+      console.log('not found in ' + config.length + ' items');
     }
   }
 }
 
 function trigger() {
+  console.log('script BEGIN')
   executeForType('click');
+  console.log('script END')
 }
 
-chrome.storage.onChanged.addListener(function(changes, namespace) {
+chrome.storage.onChanged.addListener(function (changes, namespace) {
   for (var key in changes) {
-    if( key == OPTION_KEY ) {
+    if (key == OPTION_KEY) {
       reloadConfig();
     }
     var storageChange = changes[key];
@@ -89,4 +91,4 @@ chrome.storage.onChanged.addListener(function(changes, namespace) {
   }
 });
 
-extentionSetCommand("if(trigger) trigger(); else alert('some thing wrong')");
+extentionSetCommand("trigger();");

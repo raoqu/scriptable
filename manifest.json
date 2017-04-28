@@ -5,7 +5,20 @@
   "version": "1.6",
   "background": { "scripts": ["background.js"] },
   "content_scripts": [
-    { "matches": ["*://*/*", "file://*/*"], "js": ["jquery-3.1.1.min.js", "common.js", "content.js", "jtree.js"] }
+    { 
+      "matches": ["*://*/*", "file://*/*"], 
+      "js": [
+        "jquery-3.1.1.min.js", 
+        "common.js", 
+        "content_lib_base.js", 
+        "content_lib_url.js",
+        "content_lib_html.js",
+        "content_lib_download.js",
+        "content_lib_crawler.js",
+        "content_script.js"
+      ],
+      "all_frames": true
+    }
   ],
   "options_page": "options.html",
   "browser_action": {

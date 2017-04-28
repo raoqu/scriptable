@@ -112,6 +112,7 @@ extentionRegisterEvent('retrieveData', function(key){
 });
 
 extentionRegisterEvent('setExtentionCommand', function(cmd){
+  console.log('setExtentionCommand: ' + cmd)
   __contentCommand = cmd;
 })
 
@@ -128,6 +129,7 @@ extentionRegisterEvent('downloadFile', function(data, sender){
       var concern = {
         url: data.url,
         filename: data.filename,
+        key: data.key,
         tabId: sender.tab.id
       }
       extentionWatchDownload(downloadId, concern);

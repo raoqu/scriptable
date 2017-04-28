@@ -1,6 +1,25 @@
 var currentTabId;
 var __messageCallbacks = {};
-var __downloadCallbacks = {};
+
+function ScCallback(callback) {
+  if( callback ) {
+    var args = [];
+    Array.prototype.push.apply( args, arguments );
+    args.shift();
+    return callback.apply(this, args);
+  }
+}
+
+class ScObserver {
+  constructor(observer) {
+    this.callbacks = (observer && observer.callbacks) || [];
+  }
+  add(callback) {
+    if( this.callbacks && callback ) {
+      this.callbacks.push_back(callback);
+    }
+  }
+}
 
 // send message to background script
 function extentionSendMessage(msg, data, callback) {
@@ -50,31 +69,7 @@ function extentionRetrieveData(key, callback) {
   extentionSendMessage('retrieveData', key, callback)
 }
 
-function extentionDownloadFile(url, path, callback) {
-  if( callback && url ) {
-    __downloadCallbacks[url] = callback;
-  }
-  extentionSendMessage('downloadFile', {
-      url: url,
-      filename: path,
-    }
-  );
-}
-
 // set extention browser action command script
 function extentionSetCommand(cmd, callback) {
   extentionSendMessage('setExtentionCommand', cmd, callback)
 }
-
-// data.tabId
-// data.url
-// data.filename
-// data.success
-extentionRegisterEvent('onFileDownload', function(data){
-  var key = (data && data.url) || 'not.exist';
-  var callback = __downloadCallbacks[key];
-  if( callback ) {
-    callback(data.url, data.filename, data.success, data.tabId);
-    delete __downloadCallbacks[key];
-  }
-});
