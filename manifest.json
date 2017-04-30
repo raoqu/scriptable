@@ -3,13 +3,19 @@
   "name": "Scriptable",
   "description": "Config and execute script for different url.",
   "version": "1.6",
-  "background": { "scripts": ["background.js"] },
+  "background": { 
+    "scripts": [
+      "common_base.js",
+      "common_callback.js",
+      "background.js"
+    ] 
+  },
   "content_scripts": [
     { 
       "matches": ["*://*/*", "file://*/*"], 
       "js": [
         "jquery-3.1.1.min.js", 
-        "common.js", 
+        "common_base.js", 
         "common_callback.js",
         "common_extension.js",
         "content_lib_url.js",

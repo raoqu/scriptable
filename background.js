@@ -1,8 +1,13 @@
-var __messageCallbacks = {};
+var MESSAGE_REGISTRY = {};
 var contentData = {};
 var __downloadConcerns = {};
 var __contentCommand;
 
+var __single_download_meta_group = new MetaTree(); // single file download
+var __batch_download_meta_group = new MetaTree(); // batch file download, single stored int __batch_download_meta_group.metadata (@See MetaTree)
+
+
+// chrome extension wrapper
 class Extension {
   static sendMessage(tabId, msg, data, callback) {
     chrome.tabs.sendMessage(tabId, 
@@ -17,7 +22,7 @@ class Extension {
   }
 
   static registerEvent(msg, callback) {
-    __messageCallbacks[msg] = callback;
+    MESSAGE_REGISTRY[msg] = callback;
   }
 
   static getCurrentTab(callback) {
@@ -78,7 +83,7 @@ chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse){
     var rsp;
     if( request && request.noryal_message) {
-      var callback = __messageCallbacks[request.noryal_message];
+      var callback = MESSAGE_REGISTRY[request.noryal_message];
       if( callback) {
         rsp = callback(request.noryal_data, sender);
       }

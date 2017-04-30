@@ -70,4 +70,22 @@ class UrlUtils {
 		}
 		return a.protocol+'//'+a.hostname+base.join('/');
 	}
+
+	static resolveFilePath(absoluteUrl, folder) {
+		var a=document.createElement('a'); 
+		a.href=absoluteUrl; // try to resolve url without base 
+		var path = a.pathname;
+		if( path ) {
+			var stack = path.split('/');
+			stack.length && !stack[0] && stack.shift(); // remove first empty string
+			folder && stack.unshift(folder);
+			if( stack ) {
+				if( stack.length>0 && !stack[0])
+					stack.shift();
+				path = stack.join('/');
+			}
+		}
+		//path = path.replace(/benryanconversion/, 'benryanconversion.1')
+		return path;
+	}
 }

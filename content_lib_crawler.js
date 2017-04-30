@@ -46,8 +46,21 @@ class ScCrawlerApi {
     state.delay = true;
   }
 
-  download(node) {
-    return $(node).find('img');
+  download(node, folder) {
+    let self = this.crawler;
+    folder = folder || 'scriptable';
+
+    self.onDownloadBegin();
+
+    let count = DownloadUtils.downloadImages(window.location.href, node, folder, 
+      function(t){console.log(t);}, 
+      function(taskGroup){
+        self.onDownloadComplete();
+      }
+    );
+    if( ! count ) {
+      self.onDownloadComplete();
+    }
   }
 }
 
@@ -65,7 +78,7 @@ class ScCrawler {
     this.options = options || {};
     this.content = {};
     this.state = new ScCrawlerInnerState();
-    this.tasks = ['init', 'preprocess', 'process', 'store', 'complete'];
+    this.tasks = ['init', 'preprocess', 'process', 'waitDownload', 'store', 'complete'];
     this.api = new ScCrawlerApi(this);
     this.delay = DefaultUtil.number(this.options.delay, 0);
     this.interval = DefaultUtil.number(this.options.interval, 10);
@@ -103,22 +116,26 @@ class ScCrawler {
       return this.stageCall(this.options.onPageLoad);
     }
     else if( stageName == 'preprocess') { 
-      return this.stageCall(options.onContentReady);    
+      return this.stageCall(this.options.onContentReady);    
     }
     else if( stageName == 'process') { 
-      return this.stageCall(options.process);
+      let ret = this.stageCall(this.options.process);
+      return ret;
+    }
+    else if( stageName == 'waitDownload') {
+      return this.stageCall(this.waitDownload, this);
     }
     else if( stageName == 'complete') { 
-      return this.stageCall(options.complete);    
+      return this.stageCall(this.options.complete);    
     }
     return undefined;
   }
 
-  stageCall(callback) {
+  stageCall(callback, who) {
     let stageName = this.currentStage();
     let times = this.state.times;
-    console.log(stageName + '---------');
-    let ret = ScCallback(callback, this.options, this.api, times);
+    //console.log(stageName + '---------');
+    let ret = ScCallback(callback, who||this.options, this.api, times);
     return ret;
   }
 
@@ -139,6 +156,24 @@ class ScCrawler {
     this.state.times = 0;
     this.tasks && this.tasks.length && this.tasks.shift();
     this.delayCurrentStage(this.interval);
+  }
+
+  onDownloadBegin() {
+    console.log('download begin');
+    this.state.download = true;
+  }
+
+  // wait download to be complete
+  waitDownload(api, times) {
+    console.log('wait download ');
+    if( this.state.download) {
+      return api.delay(50);
+    }
+  }
+
+  onDownloadComplete() {
+    console.log('download begin');
+    this.state.download = false;
   }
 }
 

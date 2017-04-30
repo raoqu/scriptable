@@ -17,6 +17,15 @@ class BaseUtils {
     return !val && typeof(val)!="undefined" && val!=0;
   } 
 
+  static isNumber(val) {
+    return !isNaN(parseFloat(val)) && isFinite(val);
+  }
+
+  // is array
+  static isArray(arr) {
+    return Array.isArray(arr) || Number.isInteger(arr.length);
+  }
+
   // generate random string with specified length
   static randomString(n) {
      let res = "";
@@ -64,6 +73,31 @@ class BaseUtils {
     }
 
     return true;
+  }
+
+  // convert array to objects
+  static arrayToObject(arr, fieldname, obj) {
+    obj = obj || {};
+    fieldname = fieldname || 'id';
+    if( Array.isArray(arr) && !BaseUtils.isEmpty(arr)) {
+      for( let i = 0; i < arr.length; i ++ ) {
+        let item = arr[i];
+        if( item && item[fieldname]) {
+          obj[fieldname] = item;
+        }
+      }
+    }
+    return obj;
+  }
+
+  // execute callback for each element of array
+  static each(arr, callback) {
+    if( BaseUtils.isArray(arr)) {
+      for( let i = 0; i < arr.length; i ++ ) {
+        let elem = arr[i];
+        callback.call(this, elem);
+      }
+    }
   }
 }
 
