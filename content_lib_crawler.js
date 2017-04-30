@@ -53,8 +53,13 @@ class ScCrawlerApi {
     self.onDownloadBegin();
 
     let count = DownloadUtils.downloadImages(window.location.href, node, folder, 
-      function(t){console.log(t);}, 
-      function(taskGroup){
+      // @see DownloadTask
+      function(task){
+        console.log('ONFILEDOWN ' + task.id);
+      }, 
+      // @see MetaTree
+      function(group){
+        console.log('ALL COMPLETE ' + group.id);
         self.onDownloadComplete();
       }
     );
@@ -152,6 +157,7 @@ class ScCrawler {
     setTimeout(  this.stage.bind(this), delayMs);
   }
 
+  // go next stage
   nextStage() {
     this.state.times = 0;
     this.tasks && this.tasks.length && this.tasks.shift();
@@ -165,7 +171,6 @@ class ScCrawler {
 
   // wait download to be complete
   waitDownload(api, times) {
-    console.log('wait download ');
     if( this.state.download) {
       return api.delay(50);
     }

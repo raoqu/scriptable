@@ -3,9 +3,7 @@ var contentData = {};
 var __downloadConcerns = {};
 var __contentCommand;
 
-var __single_download_meta_group = new MetaTree(); // single file download
-var __batch_download_meta_group = new MetaTree(); // batch file download, single stored int __batch_download_meta_group.metadata (@See MetaTree)
-
+var DOWNLOAD_REGISTRY = new MetaTree(); // single file download
 
 // chrome extension wrapper
 class Extension {
@@ -21,7 +19,7 @@ class Extension {
     );
   }
 
-  static registerEvent(msg, callback) {
+  static onMessage(msg, callback) {
     MESSAGE_REGISTRY[msg] = callback;
   }
 
@@ -105,35 +103,37 @@ chrome.browserAction.onClicked.addListener(function(tab) {
   }
 });
 
-Extension.registerEvent('storeData', function(data){
+Extension.onMessage('storeData', function(data){
   if( data && data.key ) {
     contentData[data.key] = data.val;
   }
 });
 
-Extension.registerEvent('retrieveData', function(key){
+Extension.onMessage('retrieveData', function(key){
   if( key )  {
     return contentData[key];
   }
   return undefined;
 });
 
-Extension.registerEvent('setExtentionCommand', function(cmd){
+Extension.onMessage('setExtentionCommand', function(cmd){
   console.log('setExtentionCommand: ' + cmd)
   __contentCommand = cmd;
 })
 
-Extension.registerEvent('setBadge', function(data, sender){
+Extension.onMessage('setBadge', function(data, sender){
   Extension.setBadgeText(data.text, false);
 });
 
-Extension.registerEvent('downloadFile', function(data, sender){
+Extension.onMessage('downloadFile', function(data, sender){
+  console.log(data);
   chrome.downloads.download({
       url: data.url,
       filename: data.filename
     },
     function(downloadId){
       var concern = {
+        id: data.id,
         url: data.url,
         filename: data.filename,
         key: data.key,
@@ -146,7 +146,7 @@ Extension.registerEvent('downloadFile', function(data, sender){
 
 // monitoring download complete / failed event
 chrome.downloads.onChanged.addListener(function(delta){
-  console.log(delta);
+  //console.log(delta);
   if( delta ) {
     var key = '' + delta.id;
     var concern = __downloadConcerns[key];

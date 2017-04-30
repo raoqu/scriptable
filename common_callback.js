@@ -2,7 +2,7 @@
 //  meta tree can be made up of meta items, and can also made up of child trees
 class MetaTree {
   constructor(treeId, metaArray) {
-    this.id = treeId;
+    this.id = treeId || BaseUtils.uniqId();
     this.type = 'tree';
     this.metadata = this.merge(metaArray);
   }
@@ -10,7 +10,7 @@ class MetaTree {
   add(meta) {
     // no duplicate add meta, this's benefit to keep callbacks on the existed meta
     let oldMeta = undefined;
-    if( meta && meta.id && !(oldMeta = get(meta.id)) ) {
+    if( meta && meta.id && !(oldMeta = this.get(meta.id)) ) {
       this.metadata[meta.id] = meta;
       return meta;
     }
@@ -38,6 +38,9 @@ class MetaTree {
 // Meta Item prototype, infact meta item can be anything has a 'id' field
 class MetaItem {
   constructor(id) {
+    if( ! id ) 
+      throw 'MetaItem id cannot be empty.';
+    
     this.id = id;
     this.type = 'item';
   }
@@ -64,12 +67,12 @@ class CallbackDispatcher {
   static addCallback(meta, callback) {
     if( ! meta ) return;
 
-    this.callbacks = this.callbacks || [];
-    this.singletonCallbacks = this.singletonCallbacks || {};
+    meta.callbacks = meta.callbacks || [];
+    meta.singletonCallbacks = meta.singletonCallbacks || {};
     // no duplicate callback added
-    if( ! this.singletonCallbacks[callback]) {
-      this.singletonCallbacks[callback] = true;
-      this.callbacks.push(callback);
+    if( ! meta.singletonCallbacks[callback]) {
+      meta.singletonCallbacks[callback] = true;
+      meta.callbacks.push(callback);
     }
   }
 

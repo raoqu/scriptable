@@ -1,5 +1,5 @@
-var __single_download_meta_group = new MetaTree(); // single file download
-var __batch_download_meta_group = new MetaTree(); // batch file download, single stored int __batch_download_meta_group.metadata (@See MetaTree)
+var DOWNLOAD_REGISTRY = new MetaTree(); // single file download
+var GROUPED_DOWNLOAD_REGISTRY = new MetaTree(); // batch file download, single stored int GROUPED_DOWNLOAD_REGISTRY.metadata (@See MetaTree)
 var __download_watcher = false;
 const DOWNLOAD_GROUP_SPLIT = '{DownloadGroup}/';
 
@@ -25,8 +25,8 @@ class DownloadUtils {
 	static download(task, callback, obj) {
 		callback && DownloadUtils.watchDownloadEvent();
 
+		task = DOWNLOAD_REGISTRY.add(task);
 		CallbackDispatcher.addCallback(task, callback);
-		__single_download_meta_group[task.id] = task;
 
 		Extension.sendMessage('downloadFile', task);
 	}
@@ -35,12 +35,12 @@ class DownloadUtils {
 	// @see MetaTree
 	static batchDownload(group_id, tasks, callback, groupCallback, obj) {
 		// merge if download batch already existed
-		let batch = __batch_download_meta_group.get(group_id) || new MetaTree();
+		let batch = GROUPED_DOWNLOAD_REGISTRY.get(group_id) || new MetaTree(group_id);
 		batch.merge(tasks);
 
 		// group callback
 		CallbackDispatcher.addCallback(batch, groupCallback);
-		__batch_download_meta_group.add(batch);
+		GROUPED_DOWNLOAD_REGISTRY.add(batch);
 
 		// download each file
 		BaseUtils.each(tasks, function(item){
@@ -75,7 +75,8 @@ class DownloadUtils {
 		Extension.onMessage(
 			'onFileDownload',
 			function(data){
-				console.log(data);
+				let task = DOWNLOAD_REGISTRY.get(data && data.id);
+				CallbackDispatcher.dispatch(task);
 			}
 		);
 	}

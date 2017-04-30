@@ -23,7 +23,7 @@ class BaseUtils {
 
   // is array
   static isArray(arr) {
-    return Array.isArray(arr) || Number.isInteger(arr.length);
+    return arr && (Array.isArray(arr) || Number.isInteger(arr.length));
   }
 
   // generate random string with specified length
