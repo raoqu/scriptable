@@ -33,7 +33,7 @@ class Extension {
 	}
 
 	// register callback for messages from background.js
-	static on(msg, callback) {
+	static on(msg, callback, obj) {
 	  __messageCallbacks[msg] = callback;
 	}
 

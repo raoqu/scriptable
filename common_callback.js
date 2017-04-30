@@ -10,3 +10,23 @@ function ScCallback(callback, self) {
     return callback.apply(self||this, args);
   }
 }
+
+class MessageQueue {
+  constructor() {
+    this.__message_map = {};
+  }
+
+  dispatch() {
+  }
+}
+
+var __message_describe_groups = {};
+var globalMessages = new MessageQueue();
+
+// Message management
+class MessageManagement {
+
+  // dispatch message callback
+  static dispatch(message, group) {
+  }
+}

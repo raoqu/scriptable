@@ -3,38 +3,75 @@ body {
     font-size: 12px
 }
 
+div.leftside {
+    float: left;
+    width: 300px;
+    height: 100%;
+    vertical-align: top;
+    overflow: hidden;
+}
+
+div.toolbar {
+
+}
+
+div.rightside {
+    width: 100%;
+    padding:1px 16px 0 0;
+    height:100%;
+}
+
+div.rightside form {
+    padding-top: 16px;
+    padding-left: 310px;
+    width: 100%;
+    margin: 0;
+    height: 100px;
+}
+
 ul.configlist {
+    display: inline-block;
+    position: absolute;
+    width: 300px;
+    top: 34px;
+    left: 0;
+    bottom: 0;
     list-style-type: none;
     margin: 0;
     padding: 0;
-    width: 300px;
-    background-color: #f1f1f1;
-    position: fixed;
-    height: 100%;
-    overflow: auto;
+    background-color: #ddd;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 ul.configlist>li {
     margin:0;
+    height: 30px;
+    border-top: solid 1px #eee;
+    border-left: solid 1px #eee;
+    border-bottom: solid 1px #bbb;
+    border-right: solid 1px #bbb;
+
 }
 
 ul.configlist>li a.item, a.functional {
+    padding: 2px 10px;
     display: block;
     color: #000;
-    padding: 8px 16px;
     text-decoration: none;
-    line-height: 18px;
+    line-height: 24px;
     background-color: #ccc;
 }
 
 ul.configlist>li a.active {
     background-color: #2C8F30;
-    color: white;
+    color: #333;
+    background-color: #ddd;
 }
 
 ul.configlist>li a.item:hover:not(.active) {
-    background-color: #aaa;
-    color: white;
+    background-color: #ddd;
+    color: #555;
 }
 
 a.functional  {
@@ -58,13 +95,8 @@ a.functional:hover {
     width: 200px;
 }
 
-div.config {
-	margin-left:300px;
-	padding:1px 16px;
-	height:100%;"
-}
 .code-column {
-    float:left;
+    display: inline-block;
     padding:5px;
     width: 100%;
 }

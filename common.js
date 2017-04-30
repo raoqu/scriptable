@@ -1,15 +1,4 @@
-function ScCallback(callback, self) {
-  if( callback ) {
-    if( ! self ) {
-      throw '"ScCallback" failed, for param "self" cannot be empty.';
-    }
-    var args = [];
-    Array.prototype.push.apply( args, arguments );
-    args.shift();
-    var obj = args.shift();
-    return callback.apply(self||this, args);
-  }
-}
+
 
 var base_util_RandomSource = [
   '0','1','2','3','4','5','6','7','8','9',
@@ -78,22 +67,8 @@ class BaseUtils {
   }
 }
 
-function extensionAjaxPost(url, data, callback) {
-  $.ajax({
-    type: 'POST',
-    url: url,
-    contentType: 'application/json',
-    dataType: 'json',
-    data: data,
-    success: function(data) {
-      if( callback )
-        callback(data);
-    }
-  })
-}
-
 class DefaultUtil {
-  
+  // default value
   static number(val, defaultVal) {
     if( typeof val == 'number') {
       return val;
@@ -103,8 +78,19 @@ class DefaultUtil {
   }
 }
 
-class QuUtils {
-  static appendUndefined(array, src) {
-
+class NetworkUtil {
+  // ajax post
+  static post(url, data, callback) {
+    $.ajax({
+      type: 'POST',
+      url: url,
+      contentType: 'application/json',
+      dataType: 'json',
+      data: data,
+      success: function(data) {
+        if( callback )
+          callback(data);
+      }
+    })
   }
 }

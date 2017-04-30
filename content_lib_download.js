@@ -11,7 +11,7 @@ class ScBatchDownloadOption {
 // download callback
 //    function({url, filename, success, tabId, complete})
 
-function extentionDownloadFile(url, path, callback) {
+function extensionDownloadFile(url, path, callback) {
   if( url ) {
 
     var observer = new ScObserver(__downloadCallbacks[url]);
@@ -20,20 +20,13 @@ function extentionDownloadFile(url, path, callback) {
 
     // notify background page to download file
     // a 'onFileDownload' message will be received once file downloaded
-    extentionSendMessage('downloadFile', {
+    Extension.sendMessage('downloadFile', {
         url: url,
         filename: path,
         key: BaseUtils.uniqId()
       }
     );
   }
-}
-
-// Callback will be called times for each file with arguments:
-//		data.{tabId, url, filename, success, allComplete}
-function extentionBatchDownload(urls, path, scBatchDownloadOption) {
-	if( urls && urls.length > 0) {
-	}
 }
 
 // data.{tabId, url, filename, success}

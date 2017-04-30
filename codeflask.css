@@ -12,8 +12,8 @@
     width:100%;
     padding:1rem !important;
     border:none;
-    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-    font-size:13px;
+    font-family: "微软雅黑", "YaHei-Consolas", Arial, Consolas, monospace;
+    font-size:12px;
     background:transparent;
     white-space:pre-wrap;
     line-height:1.5em;

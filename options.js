@@ -9,29 +9,6 @@ var defaultConfig = {
 var config = [defaultConfig];
 var OPTION_KEY = 'noryalScriptable';
 
-
-// send message to background script
-function extensionSendMessage(msg, data, callback) {
-  chrome.runtime.sendMessage({
-      noryal_message: msg,
-      noryal_data: data
-    },
-    function(rsp) {
-      if( callback ) {
-        callback(rsp);
-      }
-    }
-  );
-}
-
-function extensionDownloadFile(url, path, callback) {
-  extensionSendMessage('downloadFile', {
-      url: url,
-      filename: path,
-    }
-  );
-}
-
 var flask = new CodeFlask,
     flasks = new CodeFlask;
 
@@ -255,11 +232,23 @@ function onStoreConfiguration() {
   }
 }
 
+function downloadFile(url, filename) {
+  chrome.runtime.sendMessage( 
+    {
+      noryal_message: 'downloadFile',
+      noryal_data: {
+        url: url,
+        filename: filename
+      }
+    }
+  );
+}
+
 $('a.add').on('click', addItem);
 $('#name').on('input', onNameChanged)
 $('a.export').on('click', function(){
   let docContent = JSON.stringify(config, null, 2);
   let url = URL.createObjectURL( new Blob([docContent], {type: 'application/octet-binary'}) );
-  extensionDownloadFile(url, 'scriptable.json');
+  downloadFile(url, 'scriptable.json');
 })
 $('button').on('click', onStoreConfiguration);
