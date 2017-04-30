@@ -2,21 +2,23 @@ let ScCrawlerOption = {
     excludes: ['.advertise'],
     delay: 0,
     interval: 100,
-    check: function(crawler){},
-    preProcess: function(crawler){},
-    process: function(crawler){},
-    postProcess: function(crawler){},
-    data: {}
+    onPageLoad: function(api, times){},
+    onContentReady: function(api, times){},
+    process: function(api, times){},
+    postProcess: function(api, times){},
+    abort: function(api, times) {},
+    complete: function(api, times) {}
 }
 
-function ScHideElements(filters) {
-  if( filters && filters.length > 0) {
-    filters.map(function(el){
-      $(el).hide();
-    });
+// 爬虫内部状态
+class ScCrawlerInnerState {
+  constructor() {
+    this.state = 'init';
+    this.times = 0; // 在当前状态已执行的次数，每次 api.delay 加1
   }
 }
 
+// 爬虫API方法，提供给通过参数传入的回调方法
 class ScCrawlerApi {
   constructor(crawler) {
     this.crawler = crawler;
@@ -28,6 +30,20 @@ class ScCrawlerApi {
 
   html(node) {
     return $(node).html();
+  }
+
+  remove() {
+    if( filters && filters.length > 0) {
+      filters.map(function(el){
+        $(el).remove();
+      });
+    }
+  }
+
+  delay(millionSeconds) {
+    var obj = this.crawler;
+    var state = obj.state;
+    state.delay = true;
   }
 
   download(node) {
@@ -47,11 +63,12 @@ class ScCrawlerApi {
 class ScCrawler {
   constructor(options) {
     this.options = options || {};
-    this.tasks = ['delay', 'check', 'pre', 'download', 'content', 'store', 'complete'];
+    this.content = {};
+    this.state = new ScCrawlerInnerState();
+    this.tasks = ['init', 'preprocess', 'process', 'store', 'complete'];
     this.api = new ScCrawlerApi(this);
-    this.delay = Default.number(this.options.delay, 0);
-    this.interval = Default.number(this.options.interval, 100);
-    this.data = false;
+    this.delay = DefaultUtil.number(this.options.delay, 0);
+    this.interval = DefaultUtil.number(this.options.interval, 10);
   }
   
   // 爬虫入口
@@ -64,111 +81,64 @@ class ScCrawler {
   }
 
   stage() {
-    let stageName = this.currentStage();
-    if( stageName == 'delay') {
-      this.__delay();
+    // 分发步骤回调函数
+    let ret = this.stageDistribute();
+    // 每一个过程，如果回调返回false都会终结整个爬取过程
+    if ( ret === false ) {
+      terminate();
     }
-    else if( stageName == 'check') {
-      this.__check();
+
+    if( this.state.delay ) {
+      this.state.times ++;
+      return this.delayCurrentStage();
     }
-    else if( stageName == 'pre') {
-      this.__preProcess();
-    }
-    else if( stageName == 'content') {
-      this.__content();
-    }
-    else if( stageName == 'download') {
-      this.__download();
-    }
-    else if( stageName == 'store') {
-      this.__store();
-    }
-    else if( stageName == 'complete') {
-      this.__complete();
+    else {
+      return this.nextStage();
     }
   }
 
-  stageCheck() {
-    return true;
+  stageDistribute() {
+    var stageName = this.currentStage();
+    if( stageName == 'init') { 
+      return this.stageCall(this.options.onPageLoad);
+    }
+    else if( stageName == 'preprocess') { 
+      return this.stageCall(options.onContentReady);    
+    }
+    else if( stageName == 'process') { 
+      return this.stageCall(options.process);
+    }
+    else if( stageName == 'complete') { 
+      return this.stageCall(options.complete);    
+    }
+    return undefined;
+  }
+
+  stageCall(callback) {
+    let stageName = this.currentStage();
+    let times = this.state.times;
+    console.log(stageName + '---------');
+    let ret = ScCallback(callback, this.options, this.api, times);
+    return ret;
+  }
+
+  stageClearState() {
+    this.state.delay = false;
   }
 
   delayCurrentStage(delayMs) {
-    setTimeout(function(){
-      this.stage,
-      delayMs
-    });
+    this.stageClearState();
+    if( delayMs) {
+      //return this.stage();
+    }
+
+    setTimeout(  this.stage.bind(this), delayMs);
   }
 
   nextStage() {
-    if( this.stageCheck()) {
-      this.tasks.shift();
-      this.stage();
-    }
-    else {
-      setTimeout(function(){
-        this.nextStage,
-        this.interval
-      })
-    }
-  }
-
-  // 1. delay
-  __delay() {
-    let self = this;
-    if( this.delay > 0) {
-      this.delayCurrentStage(this.delay);
-      return;
-    }
-
-    self.nextStage();
-  }
-
-  // 2. check ready state - interval loop
-  __check() {
-    let options = this.options;
-    if( ScCallback(options.check, this) === false) {
-      this.delayCurrentStage(this.interval);
-      return false;
-    }
-
-    this.nextStage();
-  }
-
-  __preProcess() {
-    let options = this.options;
-    console.log('remove')
-    Html.remove(options.excludes);
-
-    if( ScCallback(options.preProcess, this) === false ) {
-      this.__complete();
-      return false;
-    }
-
-    this.nextStage();
-  }
-
-  __content() {
-    let data = ScCallback(options.process, this);
-    if( data === false ) {
-      this.__complete();
-      return false;
-    }
-
-    this.data = data;
-    this.nextStage();
-  }
-
-  __download() {
-    this.nextStage();
-  }
-
-  __store() {
-    this.nextStage();
-  }
-
-  __complete() {
-    ScCallback(options.postProcess, this);
-    console.log('complete');
+    this.state.times = 0;
+    this.tasks && this.tasks.length && this.tasks.shift();
+    this.delayCurrentStage(this.interval);
   }
 }
 

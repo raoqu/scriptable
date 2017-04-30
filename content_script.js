@@ -76,9 +76,7 @@ function executeForType(type) {
 }
 
 function trigger() {
-  console.log('script BEGIN')
   executeForType('click');
-  console.log('script END')
 }
 
 chrome.storage.onChanged.addListener(function (changes, namespace) {

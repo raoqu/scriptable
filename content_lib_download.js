@@ -23,7 +23,7 @@ function extentionDownloadFile(url, path, callback) {
     extentionSendMessage('downloadFile', {
         url: url,
         filename: path,
-        key: sc_UniqId()
+        key: BaseUtils.uniqId()
       }
     );
   }
@@ -37,7 +37,7 @@ function extentionBatchDownload(urls, path, scBatchDownloadOption) {
 }
 
 // data.{tabId, url, filename, success}
-extentionRegisterEvent(
+Extension.on(
   'onFileDownload', 
   function(data){
     let key = (data && data.url) || 'nothing';
@@ -46,3 +46,9 @@ extentionRegisterEvent(
     delete __downloadCallbacks[key];
   }
 );
+
+class DownloadUtils {
+  static downloadImages(cssContainer) {
+
+  }
+}

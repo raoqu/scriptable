@@ -10,7 +10,8 @@
       "js": [
         "jquery-3.1.1.min.js", 
         "common.js", 
-        "content_lib_base.js", 
+        "common_callback.js",
+        "common_extension.js",
         "content_lib_url.js",
         "content_lib_html.js",
         "content_lib_download.js",

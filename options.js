@@ -243,14 +243,7 @@ initFileInputUI(function(e){
 });
 
 
-$('a.add').on('click', addItem);
-$('#name').on('input', onNameChanged)
-$('a.export').on('click', function(){
-  let docContent = JSON.stringify(config, null, 2);
-  let url = URL.createObjectURL( new Blob([docContent], {type: 'application/octet-binary'}) );
-  extensionDownloadFile(url, 'scriptable.json');
-})
-$('button').on('click', function() {
+function onStoreConfiguration() {
   var index = getCurrentItemIndex();
   var item = storeCurrentItem();
   if( ! item ) {
@@ -260,4 +253,13 @@ $('button').on('click', function() {
       modifyItem(key);
     }
   }
+}
+
+$('a.add').on('click', addItem);
+$('#name').on('input', onNameChanged)
+$('a.export').on('click', function(){
+  let docContent = JSON.stringify(config, null, 2);
+  let url = URL.createObjectURL( new Blob([docContent], {type: 'application/octet-binary'}) );
+  extensionDownloadFile(url, 'scriptable.json');
 })
+$('button').on('click', onStoreConfiguration);

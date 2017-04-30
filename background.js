@@ -3,68 +3,72 @@ var contentData = {};
 var __downloadConcerns = {};
 var __contentCommand;
 
-function extentionSendMessage(tabId, msg, data, callback) {
-  chrome.tabs.sendMessage(tabId, 
-  	{
-  		noryal_message: msg,
-  		noryal_data: data
-  	}, 
-  	function(rsp) {
-  		if( callback ) callback(rsp);
-  	}
-  );
-}
+class Extension {
+  static sendMessage(tabId, msg, data, callback) {
+    chrome.tabs.sendMessage(tabId, 
+      {
+        noryal_message: msg,
+        noryal_data: data
+      }, 
+      function(rsp) {
+        if( callback ) callback(rsp);
+      }
+    );
+  }
 
-function extentionRegisterEvent(msg, callback) {
-  __messageCallbacks[msg] = callback;
-}
+  static registerEvent(msg, callback) {
+    __messageCallbacks[msg] = callback;
+  }
 
-function extentionGetCurrentTab(callback) {
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-    if( tabs && tabs.length>0) {
-      callback(tabs[0]);
-      chrome.browserAction.setBadgeText({
-        text: text,
-        tabId: tabs[0].id
+  static getCurrentTab(callback) {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      if( tabs && tabs.length>0) {
+        callback(tabs[0]);
+        chrome.browserAction.setBadgeText({
+          text: text,
+          tabId: tabs[0].id
+        })
+      }
+    });
+  }
+
+  // do for one or all tabs
+  // function callback(data, tab);
+  static runForTab(callback, data, allTabs) {
+    if( allTabs) {
+      callback(data);
+    }
+    else {
+      Extension.getCurrentTab(function(tab){
+        callback(data, tab);
       })
     }
-  });
-}
-
-// do for one or all tabs
-// function callback(data, tab);
-function extentionRunForTab(callback, data, allTabs) {
-  if( allTabs) {
-    callback(data);
   }
-  else {
-    extentionGetCurrentTab(function(tab){
-      callback(data, tab);
-    })
+
+  // set badget text for one or all tabs
+  static setBadgeText(text, allTabs) {
+    Extension.runForTab(function(data, tab){
+      chrome.browserAction.setBadgeText({
+        text: text,
+        tabId: tab ? tab.id : undefined
+      });
+    }, text, allTabs);
   }
-}
 
-// set badget text for one or all tabs
-function extentionSetBadgetText(text, allTabs) {
-  extentionRunForTab(function(data, tab){
-    chrome.browserAction.setBadgeText({
-      text: text,
-      tabId: tab ? tab.id : undefined
-    });
-  }, text, allTabs);
-}
 
-function extentionRunCommand() {
-  var script = __contentCommand || "alert('unknown command')"
-  if( __contentCommand ) {
-    chrome.tabs.executeScript(null, {code: script});
+  static runCommand() {
+    var script = __contentCommand || "alert('unknown command')"
+    if( __contentCommand ) {
+      chrome.tabs.executeScript(null, {code: script});
+    }
+    else {}
   }
-  else {}
-}
 
-function extentionWatchDownload(id, data) {
-  var key = '' + id;
-  __downloadConcerns[key] = data;
+
+  static watchDownload(id, data) {
+    var key = '' + id;
+    __downloadConcerns[key] = data;
+  }
 }
 
 var state = {value:0};
@@ -90,37 +94,37 @@ chrome.browserAction.onClicked.addListener(function(tab) {
   state.value = 0;
   if( state.value ) {
     state.value = 0;
-    extentionSetBadgetText('', true);
+    Extension.setBadgeText('', true);
   }
   else {
     state.value= 1;
-    extentionRunCommand();
+    Extension.runCommand();
   }
 });
 
-extentionRegisterEvent('storeData', function(data){
+Extension.registerEvent('storeData', function(data){
   if( data && data.key ) {
     contentData[data.key] = data.val;
   }
 });
 
-extentionRegisterEvent('retrieveData', function(key){
+Extension.registerEvent('retrieveData', function(key){
   if( key )  {
     return contentData[key];
   }
   return undefined;
 });
 
-extentionRegisterEvent('setExtentionCommand', function(cmd){
+Extension.registerEvent('setExtentionCommand', function(cmd){
   console.log('setExtentionCommand: ' + cmd)
   __contentCommand = cmd;
 })
 
-extentionRegisterEvent('setBadge', function(data, sender){
-  extentionSetBadgetText(data.text, false);
+Extension.registerEvent('setBadge', function(data, sender){
+  Extension.setBadgeText(data.text, false);
 });
 
-extentionRegisterEvent('downloadFile', function(data, sender){
+Extension.registerEvent('downloadFile', function(data, sender){
   chrome.downloads.download({
       url: data.url,
       filename: data.filename
@@ -132,7 +136,7 @@ extentionRegisterEvent('downloadFile', function(data, sender){
         key: data.key,
         tabId: sender.tab.id
       }
-      extentionWatchDownload(downloadId, concern);
+      Extension.watchDownload(downloadId, concern);
     }
   );
 });
@@ -154,7 +158,7 @@ chrome.downloads.onChanged.addListener(function(delta){
           concern.success = true;
 
         if( typeof concern.success == 'boolean') {
-          extentionSendMessage(concern.tabId, 'onFileDownload', concern);
+          Extension.sendMessage(concern.tabId, 'onFileDownload', concern);
           delete __downloadConcerns[key];
         }
       }
