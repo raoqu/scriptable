@@ -168,11 +168,13 @@ class ScCrawlerApi {
 
     let onSingleFileDownload = function(task){
       ScCallback(crawler.onFileDownload, crawler, task);
-      try { ScCallback(callback, crawler, task); } catch(err) { console.log('error api.download callback'); }
+      //try { ScCallback(callback, crawler, task); } catch(err) { console.log('error api.download callback'); }
+      ScCallback(callback, crawler, task);
     }
     let onBatchFileDownload = function(batchId) {
       ScCallback(crawler.onBatchDownload, crawler, batchId);
-      try { ScCallback(batchCallback, crawler, batchId); } catch(err) { console.log('error api.download batchCallback'); }
+      //try { ScCallback(batchCallback, crawler, batchId); } catch(err) { console.log('error api.download batchCallback'); }
+      ScCallback(batchCallback, crawler, batchId);
     }
 
     let batchId = BaseUtils.uniqId();
@@ -190,11 +192,13 @@ class ScCrawlerApi {
 
     let onSingleFileDownload = function(task){
       ScCallback(crawler.onFileDownload, crawler, task);
-      try { ScCallback(callback, crawler, task); } catch(err) { console.log('error api.download callback'); }
+      //try { ScCallback(callback, crawler, task); } catch(err) { console.log('error api.download callback'); }
+      ScCallback(callback, crawler, task);
     }
     let onBatchFileDownload = function(batchId) {
       ScCallback(crawler.onBatchDownload, crawler, batchId);
-      try { ScCallback(batchCallback, crawler, batchId); } catch(err) { console.log('error api.download batchCallback'); }
+      //try { ScCallback(batchCallback, crawler, batchId); } catch(err) { console.log('error api.download batchCallback'); }
+      ScCallback(batchCallback, crawler, batchId);
     }
 
     let batchId = BaseUtils.uniqId();

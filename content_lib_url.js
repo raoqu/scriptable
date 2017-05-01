@@ -71,7 +71,7 @@ class UrlUtils {
 		return a.protocol+'//'+a.hostname+base.join('/');
 	}
 
-	static resolveFilePath(absoluteUrl, folder) {
+	static resolveFilePath(absoluteUrl, folder, domainPath) {
 		var a=document.createElement('a'); 
 		a.href=absoluteUrl; // try to resolve url without base 
 		var path = a.pathname;
@@ -80,6 +80,7 @@ class UrlUtils {
 			if( stack ) {
 				stack.length && !stack[0] && stack.shift(); // remove first empty string
 				! stack.length && stack.push(BaseUtils.uniqId());
+				domainPath && a.hostname && stack.unshift(a.hostname);
 				folder && stack.unshift(folder);
 				stack.length && !stack[stack.length-1] && (stack[stack.length-1] = BaseUtils.uniqId()); // filename should not be empty
 				path = stack.join('/');

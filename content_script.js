@@ -20,7 +20,7 @@ function reloadConfig(callback) {
       for (var i = 0; i < config.length; i++) {
         config[i].type = config[i].type || "click";
       }
-      console.log('load config: ' + config.length + ' items');
+      //console.log('load config: ' + config.length + ' items');
 
       if (callback) {
         callback();

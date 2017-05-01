@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Scriptable",
   "description": "Config and execute script for different url.",
-  "version": "1.6",
+  "version": "2.0",
   "background": { 
     "scripts": [
       "common_base.js",
@@ -20,6 +20,7 @@
         "common_extension.js",
         "content_lib_url.js",
         "content_lib_html.js",
+        "content_lib_net.js",
         "content_lib_download.js",
         "content_util_crawler.js",
         "content_script.js"

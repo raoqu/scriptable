@@ -11,7 +11,7 @@ class DownloadTask {
 	static create(url, folder) {
 		let absUrl = UrlUtils.resolve(url);
 		let id = absUrl;
-		let filename = UrlUtils.resolveFilePath(absUrl, folder);
+		let filename = UrlUtils.resolveFilePath(absUrl, folder, true);
 		return new DownloadTask(id, absUrl, filename);
 	}
 }
@@ -36,7 +36,7 @@ class DownloadUtils {
 	static downloadImages(batch_id, cssFilter, folder, callback, batchCallback) {
 
 		let tasks = DownloadUtils.parseImageTasks(cssFilter, folder);
-		DownloadUtils.batchDownload(batch_id, tasks, folder,callback, batchCallback );
+		DownloadUtils.batchDownload(batch_id, tasks, callback, batchCallback );
 
 		return tasks;
 	}
@@ -125,64 +125,24 @@ class DownloadUtils {
 }
 
 // download manager
-class BatchDownloadManager {
-	constructor() {
-		this.callbacks = new MapArray(); // { taskId: [ callabck ... ] }
-		this.taskBatches = new MapArray(); // { taskId: [ batchId ... ] }
-		this.batchCallbacks = {}; // { batchId: batchCallback }
-		this.batchTasks = {}; // { batchId: { taskId: } }
-		this.taskPool = new MergeableTaskPool({
-			limit: 5,
-			process: this.downloadSingle.bind(this),
-			complete: this.onTaskPoolEmpty.bind(this)
-		});
+class BatchDownloadManager extends PooledTaskManager {
+	constructor(limit) {
+		super(limit);
 	}
 
 	// batch download files 
 	batchDownload(batchId, tasks, callback, batchCallback) {
-		// map batchId to {taskId:true}
-		let batchTaskMap = this.batchTasks[batchId] || {};
-		let manager = this;
-
-		BaseUtils.each(tasks, function(task){
-			manager.callbacks.add(task.id, callback);
-			manager.taskPool.push(task.id, task);
-			manager.taskBatches.add(task.id, batchId);
-			batchTaskMap[task.id] = true;
-		});
-
-		this.batchTasks[batchId] = batchTaskMap;
-		this.batchCallbacks[batchId] = batchCallback;
+		this.addBatch(batchId, tasks, callback, batchCallback);
 	}
 
-	// download single file
-	downloadSingle(taskId, task, resolve) {
+	// @override: process one task
+	process(taskId, task, resolve) {
+		// download a single file
 		DownloadUtils.download(task, this.onFileDownload.bind(this, taskId, task, resolve));
 	}
 
 	// @see MergeableTaskPool
 	onFileDownload(taskId, task, resolve) {
-
-		let self = this;
-		let callbacks = this.callbacks.remove(taskId);
-		let taskBatches = this.taskBatches.get(taskId);
-		BaseUtils.each(callbacks, function(callback){
-			ScCallback(callback, self, task);
-		})
-
-		// remove taskId 
-		BaseUtils.each(taskBatches, function(batchId){
-			let batchIds = self.batchTasks[batchId];
-			if( batchIds ) {
-				delete batchIds[taskId];
-				if( BaseUtils.isEmpty(batchIds)) {
-					let batchCallback = self.batchCallbacks[batchId];
-					delete self.batchCallbacks[batchId];
-					ScCallback(batchCallback, self, batchId);
-				}
-			}
-		});
-
 		resolve();
 	}
 
@@ -190,4 +150,4 @@ class BatchDownloadManager {
 	}
 }
 
-var BATCH_DOWNLOAD_MANAGER = new BatchDownloadManager();
+var BATCH_DOWNLOAD_MANAGER = new BatchDownloadManager(5);

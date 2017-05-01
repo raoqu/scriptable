@@ -54,7 +54,8 @@ class CallbackDispatcher {
   var pool = new MergeablePool( { 
     limit: 5, 
     process: function(key, data, resolve){ console.log('run:' + data.id); resolve(); },
-    complete: function() { console.log('tasks completed'); }
+    taskCallback: function(key, data) { console.log('task ' + key + ' finished'); }
+    complete: function() { console.log('task pool empty'); }
   })
 */
 class MergeableTaskPool {
@@ -111,21 +112,138 @@ class MergeableTaskPool {
   }
 
   // mark running of key finished
-  resolve(key) {
+  resolve(key, result) {
     if( this.running.get(key)) {
-      this.running.remove(key);
+      let tasks = this.running.remove(key);
       this.active --;
       // call the complete callback while no more tasks need to be schedule
+      if( ! BaseUtils.isEmpty(tasks)) {
+        this.taskFinished.call(this, key, tasks[0]);
+      }
       if( this.active == 0 && this.queue.isEmpty() ) {
-        return this.complete();
+        return this.taskPoolEmpty();
       }
     }
 
+    if( result ) {
+      console.log(result);
+    }
     setTimeout( this.schedule.bind(this), 10);
   }
 
+  taskFinished(key, task) {
+    ScCallback(this.options.taskCallback, this, key, task);
+  }
+
   // call the complete callback while no more tasks need to be schedule
-  complete() {
+  taskPoolEmpty() {
       ScCallback(this.options.complete, this);
+  }
+}
+
+
+// task manager with task pool
+// other task manager can extends this class, but need to implement the function 'process'
+// PooledTaskManager demo
+/*
+  (function(){
+    let DEMO_TASK_MANAGER = new PooledTaskManager(3);
+    let tasks = [];
+    for( let i = 0; i < 6; i ++ ) {
+      tasks.push({
+        id: 'demo-' + i,
+        meta: true,
+        anyField: 'anyValue'
+      });
+    }
+    DEMO_TASK_MANAGER.addBatch('DemoBatchID', tasks, 
+      function(task) {
+        console.log('DemoBatch: task[' + task.id + '] complete');
+      },
+      function(batchId) {
+        console.log('DemoBatch: batch[' + batchId + '] complete');
+      }
+    );
+  })();
+*/
+class PooledTaskManager {
+  constructor(limit) {
+    this.callbacks = new MapArray(); // { taskId: [ callabck ... ] }
+    this.taskBatches = new MapArray(); // { taskId: [ batchId ... ] }
+    this.batchCallbacks = {}; // { batchId: batchCallback }
+    this.batchTasks = {}; // { batchId: { taskId: } }
+    this.taskPool = new MergeableTaskPool({
+      limit: limit || 5,
+      process: this.process.bind(this),
+      taskCallback: this.onTaskComplete.bind(this),
+      complete: this.onTaskPoolIdle.bind(this)
+    });
+  }
+
+  // add single task
+  add(task, callback) {
+    let self = this;
+    this.taskPool.push(task.id, task);
+    this.callbacks.add(task.id, callback);
+  }
+
+  // add batch tasks
+  addBatch(batchId, tasks, callback, batchCallback) {
+    // map batchId to {taskId:true}
+    let batchTaskMap = this.batchTasks[batchId] || {};
+    let manager = this;
+
+    BaseUtils.each(tasks, function(task){
+      manager.callbacks.add(task.id, callback);
+      manager.taskPool.push(task.id, task);
+      manager.taskBatches.add(task.id, batchId);
+      batchTaskMap[task.id] = true;
+    });
+
+    this.batchTasks[batchId] = batchTaskMap;
+    this.batchCallbacks[batchId] = batchCallback;
+  }
+
+  // download single file
+  doSingleProcess(taskId, task, resolve) {
+    ScCallback(this.singleProc, this, taskId, task, resolve);
+  }
+
+  process(taskId, task, resolve) {
+    console.warn('method "process" should be overrided!')
+    setTimeout(resolve, 10);
+  }
+
+  // single task complete
+  onTaskComplete(taskId, task) {
+    let self = this;
+    let callbacks = this.callbacks.remove(taskId);
+    let taskBatches = this.taskBatches.get(taskId);
+    BaseUtils.each(callbacks, function(callback){
+      ScCallback(callback, self, task);
+    })
+
+    // remove taskId 
+    BaseUtils.each(taskBatches, function(batchId){
+      let batchIds = self.batchTasks[batchId];
+      if( batchIds ) {
+        delete batchIds[taskId];
+        if( BaseUtils.isEmpty(batchIds)) {
+          let batchCallback = self.batchCallbacks[batchId];
+          delete self.batchCallbacks[batchId];
+
+          self.onBatchComplete.call(this, batchId, batchCallback);
+        }
+      }
+    });
+  }
+
+  // batch complete
+  onBatchComplete(batchId, batchCallback) {
+    ScCallback(batchCallback, this, batchId);
+  }
+
+  onTaskPoolIdle() {
+    console.log('POOL EMPTY');
   }
 }
