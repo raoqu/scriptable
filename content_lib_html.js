@@ -94,3 +94,20 @@ class HtmlInnerService {
     }
   }
 }
+
+class NetworkUtil {
+  // ajax post
+  static post(url, data, callback) {
+    $.ajax({
+      type: 'POST',
+      url: url,
+      contentType: 'application/json',
+      dataType: 'json',
+      data: data,
+      success: function(data) {
+        if( callback )
+          callback(data);
+      }
+    })
+  }
+}

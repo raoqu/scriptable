@@ -6,67 +6,10 @@ let ScCrawlerOption = {
     onContentReady: function(api, times){},
     process: function(api, times){},
     postProcess: function(api, times){},
+    onFileDownload: function(task){},
+    onDownloadComplete: function(batchId){},
     abort: function(api, times) {},
     complete: function(api, times) {}
-}
-
-// 爬虫内部状态
-class ScCrawlerInnerState {
-  constructor() {
-    this.state = 'init';
-    this.times = 0; // 在当前状态已执行的次数，每次 api.delay 加1
-  }
-}
-
-// 爬虫API方法，提供给通过参数传入的回调方法
-class ScCrawlerApi {
-  constructor(crawler) {
-    this.crawler = crawler;
-  }
-
-  next() {
-    this.crawler.nextStage();
-  }
-
-  html(node) {
-    return $(node).html();
-  }
-
-  remove() {
-    if( filters && filters.length > 0) {
-      filters.map(function(el){
-        $(el).remove();
-      });
-    }
-  }
-
-  delay(millionSeconds) {
-    var obj = this.crawler;
-    var state = obj.state;
-    state.delay = true;
-  }
-
-  download(node, folder) {
-    let self = this.crawler;
-    folder = folder || 'scriptable';
-
-    self.onDownloadBegin();
-
-    let count = DownloadUtils.downloadImages(window.location.href, node, folder, 
-      // @see DownloadTask
-      function(task){
-        console.log('ONFILEDOWN ' + task.id);
-      }, 
-      // @see MetaTree
-      function(group){
-        console.log('ALL COMPLETE ' + group.id);
-        self.onDownloadComplete();
-      }
-    );
-    if( ! count ) {
-      self.onDownloadComplete();
-    }
-  }
 }
 
 /**
@@ -108,7 +51,7 @@ class ScCrawler {
 
     if( this.state.delay ) {
       this.state.times ++;
-      return this.delayCurrentStage();
+      return this.delayCurrentStage(this.state.delayMs || 100);
     }
     else {
       return this.nextStage();
@@ -150,7 +93,7 @@ class ScCrawler {
 
   delayCurrentStage(delayMs) {
     this.stageClearState();
-    if( delayMs) {
+    if( !delayMs) {
       //return this.stage();
     }
 
@@ -165,7 +108,6 @@ class ScCrawler {
   }
 
   onDownloadBegin() {
-    console.log('download begin');
     this.state.download = true;
   }
 
@@ -176,9 +118,87 @@ class ScCrawler {
     }
   }
 
-  onDownloadComplete() {
-    console.log('download begin');
+  onFileDownload(task) {
+  }
+
+  onBatchDownload(batchId) {
     this.state.download = false;
+  }
+}
+
+// 爬虫内部状态
+class ScCrawlerInnerState {
+  constructor() {
+    this.state = 'init';
+    this.times = 0; // 在当前状态已执行的次数，每次 api.delay 加1
+  }
+}
+
+// 爬虫API方法，提供给通过参数传入的回调方法
+class ScCrawlerApi {
+  constructor(crawler) {
+    this.crawler = crawler;
+  }
+
+  next() {
+    this.crawler.nextStage();
+  }
+
+  html(node) {
+    return $(node).html();
+  }
+
+  remove() {
+    if( filters && filters.length > 0) {
+      filters.map(function(el){
+        $(el).remove();
+      });
+    }
+  }
+
+  delay(millionSeconds) {
+    var state = this.crawler.state;
+    state.delay = true;
+    state.delayMs = millionSeconds || 100;
+  }
+
+  // batch download tasks
+  download(tasks, callback, batchCallback) {
+    let crawler = this.crawler;
+
+    let onSingleFileDownload = function(task){
+      ScCallback(crawler.onFileDownload, crawler, task);
+      try { ScCallback(callback, crawler, task); } catch(err) { console.log('error api.download callback'); }
+    }
+    let onBatchFileDownload = function(batchId) {
+      ScCallback(crawler.onBatchDownload, crawler, batchId);
+      try { ScCallback(batchCallback, crawler, batchId); } catch(err) { console.log('error api.download batchCallback'); }
+    }
+
+    let batchId = BaseUtils.uniqId();
+    DownloadUtils.batchDownload(batchId, tasks, onSingleFileDownload, onBatchFileDownload);
+  }
+
+  // downloadImages
+  downloadImages(node, folder, callback, batchCallback) {
+    let self = this;
+    let crawler = this.crawler;
+    folder = folder || 'scriptable';
+
+    crawler.onDownloadBegin();
+
+
+    let onSingleFileDownload = function(task){
+      ScCallback(crawler.onFileDownload, crawler, task);
+      try { ScCallback(callback, crawler, task); } catch(err) { console.log('error api.download callback'); }
+    }
+    let onBatchFileDownload = function(batchId) {
+      ScCallback(crawler.onBatchDownload, crawler, batchId);
+      try { ScCallback(batchCallback, crawler, batchId); } catch(err) { console.log('error api.download batchCallback'); }
+    }
+
+    let batchId = BaseUtils.uniqId();
+    DownloadUtils.downloadImages( batchId, node, folder, onSingleFileDownload, onBatchFileDownload);
   }
 }
 

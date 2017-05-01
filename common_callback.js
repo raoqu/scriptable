@@ -1,50 +1,3 @@
-// Meta tree
-//  meta tree can be made up of meta items, and can also made up of child trees
-class MetaTree {
-  constructor(treeId, metaArray) {
-    this.id = treeId || BaseUtils.uniqId();
-    this.type = 'tree';
-    this.metadata = this.merge(metaArray);
-  }
-
-  add(meta) {
-    // no duplicate add meta, this's benefit to keep callbacks on the existed meta
-    let oldMeta = undefined;
-    if( meta && meta.id && !(oldMeta = this.get(meta.id)) ) {
-      this.metadata[meta.id] = meta;
-      return meta;
-    }
-
-    return oldMeta;
-  }
-
-  remove(metaId) {
-    delete this.metadata[metaId];
-  }
-
-  get(metaId) {
-    return this.metadata[metaId];
-  }
-
-  isEmpty() {
-    return BaseUtils.isEmpty(this.metadata);
-  }
-
-  merge(array) {
-    return BaseUtils.arrayToObject(array, 'id', this.metadata);
-  }
-}
-
-// Meta Item prototype, infact meta item can be anything has a 'id' field
-class MetaItem {
-  constructor(id) {
-    if( ! id ) 
-      throw 'MetaItem id cannot be empty.';
-    
-    this.id = id;
-    this.type = 'item';
-  }
-}
 
 // function to call any function with specified 'this' and arguments
 function ScCallback(callback, self, var_args) {
@@ -63,51 +16,116 @@ function ScCallback(callback, self, var_args) {
 
 // callback dispatcher
 class CallbackDispatcher {
-  // add a callback to a meta object
-  static addCallback(meta, callback) {
-    if( ! meta ) return;
+  constructor() {
+    this.registry = new MapArray();
+  }
 
-    meta.callbacks = meta.callbacks || [];
-    meta.singletonCallbacks = meta.singletonCallbacks || {};
-    // no duplicate callback added
-    if( ! meta.singletonCallbacks[callback]) {
-      meta.singletonCallbacks[callback] = true;
-      meta.callbacks.push(callback);
-    }
+  // add a callback to a meta object
+  addCallback(taskId, callback) {
+    this.registry.add(taskId, callback);
   }
 
   // dispatch callbacks bound on meta object
-  static dispatch(meta, self, var_args) {
-    meta && 
-    BaseUtils.each(meta.callbacks, function(callback){
-      var args = [];
-      Array.prototype.push.apply( args, arguments );
-      // remove 2 params (meta, self), leave var_args retained
-      args.shift();
-      args.shift();
-      args.push(meta);
+  dispatchOnce(taskId, var_args) {
+    let callbacks = this.registry.remove(taskId);
 
-      callback.apply(self||meta, args);
-    })
+    var args = [];
+    Array.prototype.push.apply( args, arguments );
+    args.unshift(callbacks);
+
+    CallbackDispatcher.dispatch.apply(this, args);
   }
 
   // 
-  static dispatchWithResultProcess(meta, self, resultProc, var_args) {
-    meta && 
-    BaseUtils.each(meta.callbacks, function(callback){
+  static dispatch(callbacks, var_args) {
+    let self = this;
+    
+    BaseUtils.each(callbacks, function(callback){
       var args = [];
       Array.prototype.push.apply( args, arguments );
-      // remove 3 params (meta, self, resultProc), leave var_args retained
       args.shift();
-      args.shift();
-      args.shift();
-      args.push(meta);
 
-      callback.apply(self||meta, args);
-      ScCallback(resultProc, )
-      if( resultProc ) {
-        resultProc.call(self, ret);
-      }
+      callback.apply(self||{}, args);
     })
+  }
+}
+
+/*
+  var pool = new MergeablePool( { 
+    limit: 5, 
+    process: function(key, data, resolve){ console.log('run:' + data.id); resolve(); },
+    complete: function() { console.log('tasks completed'); }
+  })
+*/
+class MergeableTaskPool {
+  constructor(options) {
+    this.options = options || {};
+    options = this.options;
+
+    this.active = 0;
+    this.limit = options.limit || 5;
+    this.running = new MapArray();
+    this.queue = new LinkedSet();
+    this.cached = new MapArray();
+  }
+
+  // add a task into pool, make it queued on running pool full filled
+  push(key, task) {
+    // key existed in running pool, need no wait for queue
+    if( this.running.get(key)) {
+      return this.running.add(key, task);
+    }
+    // execute task at once while there's quota in running queue
+    if( this.active < this.limit) {
+      return this.execute(key, task);
+    }
+    // otherwise, queue the task to be scheduled later
+    return this.cache(key, task);
+  }
+
+  // execute task at one without wating
+  execute(key, task) {
+    this.running.add(key, task);
+    this.active ++;
+    // perform the task execute process, only execute the first node of the array
+    ScCallback(this.options.process, this.options, key, task, this.resolve.bind(this, key));
+  }
+
+  // add a task into queue of waiting scehduled
+  cache(key, task) {
+    this.queue.push(key);
+    this.cached.add(key, task);
+  }
+
+  // schedule tasks to make sure the usage of running pool
+  schedule() {
+    let count = this.limit - this.active;
+    let scheduleCount = Math.min(count, this.queue.length());
+    for( let i = 0; i < scheduleCount; i ++ ) {
+      let key = this.queue.shift();
+      let tasks = this.cached.remove(key);
+      if( tasks && tasks[0]) {
+        this.execute(key, tasks[0]);
+      }
+    }
+  }
+
+  // mark running of key finished
+  resolve(key) {
+    if( this.running.get(key)) {
+      this.running.remove(key);
+      this.active --;
+      // call the complete callback while no more tasks need to be schedule
+      if( this.active == 0 && this.queue.isEmpty() ) {
+        return this.complete();
+      }
+    }
+
+    setTimeout( this.schedule.bind(this), 10);
+  }
+
+  // call the complete callback while no more tasks need to be schedule
+  complete() {
+      ScCallback(this.options.complete, this);
   }
 }

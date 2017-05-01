@@ -1,7 +1,5 @@
-var DOWNLOAD_REGISTRY = new MetaTree(); // single file download
-var GROUPED_DOWNLOAD_REGISTRY = new MetaTree(); // batch file download, single stored int GROUPED_DOWNLOAD_REGISTRY.metadata (@See MetaTree)
 var __download_watcher = false;
-const DOWNLOAD_GROUP_SPLIT = '{DownloadGroup}/';
+var DOWNLOAD_DISPATCHER = new CallbackDispatcher();
 
 class DownloadTask {
 	constructor(id, url, filename) {
@@ -22,46 +20,45 @@ class DownloadUtils {
 
 	// download single file
 	// @see DownloadTask
-	static download(task, callback, obj) {
+	static download(task, callback) {
 		callback && DownloadUtils.watchDownloadEvent();
 
-		task = DOWNLOAD_REGISTRY.add(task);
-		CallbackDispatcher.addCallback(task, callback);
-
+		DOWNLOAD_DISPATCHER.addCallback(task.id, callback);
+		// notify background page to download file
 		Extension.sendMessage('downloadFile', task);
 	}
 
-	// batch download files 
-	// @see MetaTree
-	static batchDownload(group_id, tasks, callback, groupCallback, obj) {
-		// merge if download batch already existed
-		let batch = GROUPED_DOWNLOAD_REGISTRY.get(group_id) || new MetaTree(group_id);
-		batch.merge(tasks);
+	//
+	// DownloadUtils.downloadImages('batchId', '.className', 'folder',
+	//   function(task){ console.log(task.id); },
+	//   function(batchId){ console.log(batchId); }
+	// );
+	static downloadImages(batch_id, cssFilter, folder, callback, batchCallback) {
 
-		// group callback
-		CallbackDispatcher.addCallback(batch, groupCallback);
-		GROUPED_DOWNLOAD_REGISTRY.add(batch);
+		let tasks = DownloadUtils.parseImageTasks(cssFilter, folder);
+		DownloadUtils.batchDownload(batch_id, tasks, folder,callback, batchCallback );
 
-		// download each file
-		BaseUtils.each(tasks, function(item){
-			DownloadUtils.download(item, callback, obj);
-		});
+		return tasks;
 	}
 
-	static downloadImages(group_id, cssFilter, folder, callback, groupCallback, obj) {
-		let imgs = $(cssFilter).find('img');
-		let tasks = [];
+	// batch download files (task type: DownloadTask)
+	static batchDownload(batch_id, tasks, callback, batchCallback) {
+		if( ! BaseUtils.isArray(tasks)) {
+			throw 'DownloadUtils.batchDownload: tasks must be an array';
+		}
 
-		BaseUtils.each(imgs, function(img){
-			let image = $(img);
-			let url = image.attr('src');
-			tasks.push( DownloadTask.create(url, folder));
-		});
+		tasks.batchId = batch_id;
+		let innerBatchCallback = function(){
+			ScCallback(batchCallback, this, batch_id, tasks.length);
+		}
 
 		if( tasks.length > 0 ) {
-			DownloadUtils.batchDownload(group_id, tasks, callback, groupCallback, obj);
+			BATCH_DOWNLOAD_MANAGER.batchDownload(batch_id, tasks, callback, innerBatchCallback );
 		}
-		return tasks.length;
+		else {
+			// nothing to be download
+			innerBatchCallback();
+		}
 	}
 
 	// listen file download complete notify
@@ -74,10 +71,123 @@ class DownloadUtils {
 		// data.{tabId, url, filename, success}
 		Extension.onMessage(
 			'onFileDownload',
-			function(data){
-				let task = DOWNLOAD_REGISTRY.get(data && data.id);
-				CallbackDispatcher.dispatch(task);
+			function(task){
+				DOWNLOAD_DISPATCHER.dispatchOnce(task && task.id, task);
 			}
 		);
 	}
+
+	static parseImageTasks(cssFilter, folder) {
+		let imgs = $(cssFilter).find('img');
+		let tasks = [];
+
+		BaseUtils.each(imgs, function(img){
+			let image = $(img);
+			let url = image.attr('src');
+			if( url ) {
+				let task = DownloadTask.create(url, folder);
+				tasks.push(task);
+			}
+		});
+
+		return tasks;
+	}
+
+	static parseLinkTasks(cssFilter, folder) {
+		let imgs = $(cssFilter).find('a');
+		let tasks = [];
+
+		BaseUtils.each(imgs, function(img){
+			let image = $(img);
+			let url = image.attr('href');
+			if( url ) {
+				let task = DownloadTask.create(url, folder);
+				tasks.push(task);
+			}
+		});
+
+		return tasks;
+	}
+
+	static mergeTasks(var_tasks) {
+		let set = new LinkedSet();
+		let tasks = [];
+		BaseUtils.each(arguments, function(array){
+			BaseUtils.each(array, function(task){
+				if( set.push(task.id)) {
+					tasks.push(task);;
+				}
+			});
+		});
+
+		return tasks;
+	}
 }
+
+// download manager
+class BatchDownloadManager {
+	constructor() {
+		this.callbacks = new MapArray(); // { taskId: [ callabck ... ] }
+		this.taskBatches = new MapArray(); // { taskId: [ batchId ... ] }
+		this.batchCallbacks = {}; // { batchId: batchCallback }
+		this.batchTasks = {}; // { batchId: { taskId: } }
+		this.taskPool = new MergeableTaskPool({
+			limit: 5,
+			process: this.downloadSingle.bind(this),
+			complete: this.onTaskPoolEmpty.bind(this)
+		});
+	}
+
+	// batch download files 
+	batchDownload(batchId, tasks, callback, batchCallback) {
+		// map batchId to {taskId:true}
+		let batchTaskMap = this.batchTasks[batchId] || {};
+		let manager = this;
+
+		BaseUtils.each(tasks, function(task){
+			manager.callbacks.add(task.id, callback);
+			manager.taskPool.push(task.id, task);
+			manager.taskBatches.add(task.id, batchId);
+			batchTaskMap[task.id] = true;
+		});
+
+		this.batchTasks[batchId] = batchTaskMap;
+		this.batchCallbacks[batchId] = batchCallback;
+	}
+
+	// download single file
+	downloadSingle(taskId, task, resolve) {
+		DownloadUtils.download(task, this.onFileDownload.bind(this, taskId, task, resolve));
+	}
+
+	// @see MergeableTaskPool
+	onFileDownload(taskId, task, resolve) {
+
+		let self = this;
+		let callbacks = this.callbacks.remove(taskId);
+		let taskBatches = this.taskBatches.get(taskId);
+		BaseUtils.each(callbacks, function(callback){
+			ScCallback(callback, self, task);
+		})
+
+		// remove taskId 
+		BaseUtils.each(taskBatches, function(batchId){
+			let batchIds = self.batchTasks[batchId];
+			if( batchIds ) {
+				delete batchIds[taskId];
+				if( BaseUtils.isEmpty(batchIds)) {
+					let batchCallback = self.batchCallbacks[batchId];
+					delete self.batchCallbacks[batchId];
+					ScCallback(batchCallback, self, batchId);
+				}
+			}
+		});
+
+		resolve();
+	}
+
+	onTaskPoolEmpty() {
+	}
+}
+
+var BATCH_DOWNLOAD_MANAGER = new BatchDownloadManager();

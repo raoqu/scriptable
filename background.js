@@ -3,8 +3,6 @@ var contentData = {};
 var __downloadConcerns = {};
 var __contentCommand;
 
-var DOWNLOAD_REGISTRY = new MetaTree(); // single file download
-
 // chrome extension wrapper
 class Extension {
   static sendMessage(tabId, msg, data, callback) {
@@ -126,7 +124,7 @@ Extension.onMessage('setBadge', function(data, sender){
 });
 
 Extension.onMessage('downloadFile', function(data, sender){
-  console.log(data);
+  //console.log(data);
   chrome.downloads.download({
       url: data.url,
       filename: data.filename
