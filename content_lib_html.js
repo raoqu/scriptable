@@ -15,9 +15,6 @@ class Html {
   static show(cssFilterArray) {
     return HtmlInnerService.distribute(cssFilterArray, 'show');
   }
-  // enumerate all image url in elements
-  static enumerateImages(cssFilterArray) {
-  }
 
   // dispatch mouse event on specified dom
   // e.g.  Html.dispatchMouseEvent($('#id')[0], 'mouseover', true, true);
@@ -95,7 +92,7 @@ class HtmlInnerService {
   }
 }
 
-class NetworkUtil {
+class NetworkUtils {
   // ajax post
   static post(url, data, callback) {
     $.ajax({
@@ -103,10 +100,12 @@ class NetworkUtil {
       url: url,
       contentType: 'application/json',
       dataType: 'json',
-      data: data,
+      data: JSON.stringify(data||{}),
       success: function(data) {
-        if( callback )
-          callback(data);
+        ScCallback(callback, this, true, data);
+      },
+      error: function() {
+        ScCallback(callback, this, false, null);
       }
     })
   }
