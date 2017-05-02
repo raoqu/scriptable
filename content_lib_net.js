@@ -29,7 +29,7 @@ class PooledAjaxManager extends PooledTaskManager {
 	process(taskId, task, resolve) {
 		AjaxUtils.post(task.url, task.data, 
 			function(success, data) {
-				resolve({success: success, data: data, id: task.id, task: task});
+				resolve({success: success, data: data});
 			}
 		);
 	}

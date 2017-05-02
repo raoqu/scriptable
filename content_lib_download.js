@@ -71,8 +71,9 @@ class DownloadUtils {
 		// data.{tabId, url, filename, success}
 		Extension.onMessage(
 			'onFileDownload',
-			function(task){
-				DOWNLOAD_DISPATCHER.dispatchOnce(task && task.id, task);
+			function(result){
+				// result.id = task.id
+				DOWNLOAD_DISPATCHER.dispatchOnce(result && result.id, result);
 			}
 		);
 	}
@@ -137,13 +138,21 @@ class BatchDownloadManager extends PooledTaskManager {
 
 	// @override: process one task
 	process(taskId, task, resolve) {
+		let self = this;
 		// download a single file
-		DownloadUtils.download(task, this.onFileDownload.bind(this, taskId, task, resolve));
+		DownloadUtils.download(
+			task, 
+			// fix: this.onFileDownloadFinished.bind(this, taskId, task, resolve)
+			// pass the result dispatched from 'watchDownloadEvent', but not the task from TaskPool
+			function(downloadResult) {
+				ScCallback(self.onFileDownloadFinished, self, taskId, task, downloadResult, resolve);
+			}
+		);
 	}
 
 	// @see MergeableTaskPool
-	onFileDownload(taskId, task, resolve) {
-		resolve();
+	onFileDownloadFinished(taskId, task, result, resolve) {
+		resolve(result);
 	}
 
 	onTaskPoolEmpty() {

@@ -6,8 +6,6 @@ let ScCrawlerOption = {
     onContentReady: function(api, times){},
     process: function(api, times){},
     postProcess: function(api, times){},
-    onFileDownload: function(task){},
-    onDownloadComplete: function(batchId){},
     abort: function(api, times) {},
     complete: function(api, times) {}
 }
@@ -73,6 +71,9 @@ class ScCrawler {
     else if( stageName == 'waitDownload') {
       return this.stageCall(this.waitDownload, this);
     }
+    else if( stageName == 'store') {
+      return this.stageCall(this.options.store, this);
+    }
     else if( stageName == 'complete') { 
       return this.stageCall(this.options.complete);    
     }
@@ -94,7 +95,7 @@ class ScCrawler {
   delayCurrentStage(delayMs) {
     this.stageClearState();
     if( !delayMs) {
-      //return this.stage();
+      return this.stage();
     }
 
     setTimeout(  this.stage.bind(this), delayMs);
@@ -118,7 +119,7 @@ class ScCrawler {
     }
   }
 
-  onFileDownload(task) {
+  onFileDownload(task, result) {
   }
 
   onBatchDownload(batchId) {
@@ -166,10 +167,10 @@ class ScCrawlerApi {
   download(tasks, callback, batchCallback) {
     let crawler = this.crawler;
 
-    let onSingleFileDownload = function(task){
-      ScCallback(crawler.onFileDownload, crawler, task);
+    let onSingleFileDownload = function(task, result){
+      ScCallback(crawler.onFileDownload, crawler, task, result);
       //try { ScCallback(callback, crawler, task); } catch(err) { console.log('error api.download callback'); }
-      ScCallback(callback, crawler, task);
+      ScCallback(callback, crawler, task, result);
     }
     let onBatchFileDownload = function(batchId) {
       ScCallback(crawler.onBatchDownload, crawler, batchId);
@@ -178,7 +179,7 @@ class ScCrawlerApi {
     }
 
     let batchId = BaseUtils.uniqId();
-    DownloadUtils.batchDownload(batchId, tasks, onSingleFileDownload, onBatchFileDownload);
+    DownloadUtils.batchDownload(batchId, tasks, callback, onBatchFileDownload);
   }
 
   // downloadImages
@@ -190,10 +191,10 @@ class ScCrawlerApi {
     crawler.onDownloadBegin();
 
 
-    let onSingleFileDownload = function(task){
-      ScCallback(crawler.onFileDownload, crawler, task);
+    let onSingleFileDownload = function(task, result){
+      ScCallback(crawler.onFileDownload, crawler, task, result);
       //try { ScCallback(callback, crawler, task); } catch(err) { console.log('error api.download callback'); }
-      ScCallback(callback, crawler, task);
+      ScCallback(callback, crawler, task, result);
     }
     let onBatchFileDownload = function(batchId) {
       ScCallback(crawler.onBatchDownload, crawler, batchId);

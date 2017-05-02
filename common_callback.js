@@ -31,6 +31,7 @@ class CallbackDispatcher {
 
     var args = [];
     Array.prototype.push.apply( args, arguments );
+    args.shift();
     args.unshift(callbacks);
 
     CallbackDispatcher.dispatch.apply(this, args);
@@ -39,10 +40,11 @@ class CallbackDispatcher {
   // 
   static dispatch(callbacks, var_args) {
     let self = this;
+    let selfArgs = arguments;
     
     BaseUtils.each(callbacks, function(callback){
       var args = [];
-      Array.prototype.push.apply( args, arguments );
+      Array.prototype.push.apply( args, selfArgs );
       args.shift();
 
       callback.apply(self||{}, args);
@@ -117,22 +119,19 @@ class MergeableTaskPool {
       let tasks = this.running.remove(key);
       this.active --;
       // call the complete callback while no more tasks need to be schedule
-      if( ! BaseUtils.isEmpty(tasks)) {
-        this.taskFinished.call(this, key, tasks[0]);
-      }
+      let task = (tasks && tasks.length && tasks[0]) || {};
+      this.taskFinished.call(this, key, task, result);
+
       if( this.active == 0 && this.queue.isEmpty() ) {
         return this.taskPoolEmpty();
       }
     }
 
-    if( result ) {
-      console.log(result);
-    }
     setTimeout( this.schedule.bind(this), 10);
   }
 
-  taskFinished(key, task) {
-    ScCallback(this.options.taskCallback, this, key, task);
+  taskFinished(key, task, result) {
+    ScCallback(this.options.taskCallback, this, key, task, result);
   }
 
   // call the complete callback while no more tasks need to be schedule
@@ -215,12 +214,12 @@ class PooledTaskManager {
   }
 
   // single task complete
-  onTaskComplete(taskId, task) {
+  onTaskComplete(taskId, task, result) {
     let self = this;
     let callbacks = this.callbacks.remove(taskId);
     let taskBatches = this.taskBatches.get(taskId);
     BaseUtils.each(callbacks, function(callback){
-      ScCallback(callback, self, task);
+      ScCallback(callback, self, task, result);
     })
 
     // remove taskId 
@@ -244,6 +243,5 @@ class PooledTaskManager {
   }
 
   onTaskPoolIdle() {
-    console.log('POOL EMPTY');
   }
 }
