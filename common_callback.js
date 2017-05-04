@@ -143,10 +143,10 @@ class MergeableTaskPool {
 
 // task manager with task pool
 // other task manager can extends this class, but need to implement the function 'process'
-// PooledTaskManager demo
+// BatchTaskPool demo
 /*
   (function(){
-    let DEMO_TASK_MANAGER = new PooledTaskManager(3);
+    let DEMO_TASK_MANAGER = new BatchTaskPool(3);
     let tasks = [];
     for( let i = 0; i < 6; i ++ ) {
       tasks.push({
@@ -165,7 +165,7 @@ class MergeableTaskPool {
     );
   })();
 */
-class PooledTaskManager {
+class BatchTaskPool {
   constructor(limit) {
     this.callbacks = new MapArray(); // { taskId: [ callabck ... ] }
     this.taskBatches = new MapArray(); // { taskId: [ batchId ... ] }
@@ -203,11 +203,7 @@ class PooledTaskManager {
     this.batchCallbacks[batchId] = batchCallback;
   }
 
-  // download single file
-  doSingleProcess(taskId, task, resolve) {
-    ScCallback(this.singleProc, this, taskId, task, resolve);
-  }
-
+  // process single task
   process(taskId, task, resolve) {
     console.warn('method "process" should be overrided!')
     setTimeout(resolve, 10);

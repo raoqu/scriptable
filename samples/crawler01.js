@@ -3,7 +3,7 @@
 	let storing = false;
 
 	extentionCrawl({
-		onPageLoad: function(api, times) { }, 
+		onPageLoad: function(api, times) { Html.remove([.advertisement]) }, 
 
 		process: function(api, times) {    
 			api.downloadImages( '.Card', 'zhihu',

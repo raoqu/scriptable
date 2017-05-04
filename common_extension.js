@@ -37,6 +37,33 @@ class Extension {
 	  __messageCallbacks[msg] = callback;
 	}
 
+	// 
+	// 	register  Whether registered to the background page, so the child tab can be 
+	static createTab(url, callback, register) {
+		let innerCreateTab = function(url, callback) {
+			chrome.tabs.create({
+					url: url,
+					active: true,
+					selected: false
+				},
+				function(tab) {
+					ScCallback(callback, this, tab);
+				}
+			);
+		}
+
+		if( register ) {
+			Extension.sendMessage(
+				'registerChild',
+				{ url: url },
+				function() { innerCreateTab(url, callback); }
+			);
+		}
+		else {
+			innerCreateTab(url, callback);
+		}
+	}
+
 }
 
 chrome.runtime.onMessage.addListener(

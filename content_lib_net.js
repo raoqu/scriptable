@@ -21,7 +21,7 @@ class AjaxUtils {
   }
 }
 
-class PooledAjaxManager extends PooledTaskManager {
+class PooledAjaxManager extends BatchTaskPool {
 	constructor(limit) {
 		super(limit);
 	}

@@ -22,7 +22,7 @@ options用法说明：
 
     - store(api, times) 执行存储内容（包括通过网络请求存储到后端）
 
-        可以通过 AjaxUtils.batchPost投递数据，确定在收到请求前通过 return this.delay(100) 保存在store阶段
+        可以通过 AjaxUtils.batchPost投递数据，确定在收到应答前通过 return this.delay(100) 保持停留在store阶段
 
     - complete() 完成回调
 
@@ -145,15 +145,13 @@ API提供以下方法：
 
 此外扩展本身也提供其他工具类：
 
-    - DownloadUtils.parseImageTasks
-    - DownloadUtils.parseLinkTasks
-    - DownloadUtils.mergeTasks
+    - DownloadUtils.parseImageTasks(cssFilter)
+    - DownloadUtils.parseLinkTasks(cssFilter)
+    - DownloadUtils.mergeTasks(tasks1, tasks2, ...)
+    - DownloadUtils.batchDownload(batchId, tasks, callback, batchCallback)
             在使用api.download进行批量下载时使用Pool管理，当前设置单个页面并发下载数量为5；
-    - AjaxUtils.post
-            用于向服务端投递数据，其中数据会被转换为JSON格式投递
-            AjaxUtils.post( serviceUrl, dataObject, function(success, data) {})
-            AjaxUtils.batchPost( tasks, 
-                function(task, result) {}, 
-                function(batchId){});
+    - AjaxUtils.post(serviceUrl, dataObject, callback)
+    - AjaxUtils.batchPost(tasks, callback, batchCallback)
+            用于向服务端投递数据，其中数据会被转换为JSON格式投递，和下载一样，batchPost也接受任务池管理。
     - jQuery 3.1.1 的所有方法
 

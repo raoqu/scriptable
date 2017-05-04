@@ -1,20 +1,38 @@
 var MESSAGE_REGISTRY = {};
-var contentData = {};
+var GLOBAL_DATA = {};
 var __downloadConcerns = {};
 var __contentCommand;
 
+class TabManager {
+  constructor() {
+    this.forks = {}; // {url: parentTabId}
+  }
+  register(url, parentTabId) {
+    this.fork[url] = parentTabId;
+  }
+  get(url) {
+    return this.fork[url];
+  }
+  remove(url) {
+    let parentId = this.fork[url];
+    delete this.fork[url];
+    return parentId;
+  }
+}
+
+var TAB_CREATE_REGISTRY = new TabManager();
 
 // ----------- commands from content pages --------------
 var GLOABAL_COMMANDS = {
   'storeData': function(data){
     if( data && data.key ) {
-      contentData[data.key] = data.val;
+      GLOBAL_DATA[data.key] = data.val;
     }
   },
 
   'retrieveData': function(key){
     if( key )  {
-      return contentData[key];
+      return GLOBAL_DATA[key];
     }
     return undefined;
   },
@@ -43,6 +61,17 @@ var GLOABAL_COMMANDS = {
         Extension.watchDownload(downloadId, concern);
       }
     );
+  },
+
+  'registerChild': function(data, sender) {
+    TAB_CREATE_REGISTRY.register(data.url, sender.tab.id);
+  },
+
+  'getParentTab': function(data, sender) {
+    let parentId = TAB_CREATE_REGISTRY.get(data.url);
+    return {
+      parentId: parentId
+    };
   }
 
 };

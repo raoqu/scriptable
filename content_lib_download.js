@@ -126,7 +126,7 @@ class DownloadUtils {
 }
 
 // download manager
-class BatchDownloadManager extends PooledTaskManager {
+class BatchDownloadManager extends BatchTaskPool {
 	constructor(limit) {
 		super(limit);
 	}

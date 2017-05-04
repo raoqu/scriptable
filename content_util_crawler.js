@@ -205,6 +205,12 @@ class ScCrawlerApi {
     let batchId = BaseUtils.uniqId();
     DownloadUtils.downloadImages( batchId, node, folder, onSingleFileDownload, onBatchFileDownload);
   }
+
+  // fork a new page
+  fork(url) {
+    Extension.createTab(url, function(tab){
+    });
+  }
 }
 
 function extentionCrawl(scCrawlerOption) {
