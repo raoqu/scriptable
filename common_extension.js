@@ -31,7 +31,7 @@ class Extension {
 	}
 
 	// notify background.js to store data
-	static set(key, val, callback) {
+	static setGlobal(key, val, callback) {
 		Extension.sendMessage('storeData', {
 				key: key,
 				val: val
@@ -41,13 +41,33 @@ class Extension {
 	}
 
 	// retrive data from background page
-	static get(key, callback) {
+	static getGlobal(key, callback) {
 		Extension.sendMessage('retrieveData', key, callback)
 	}
 
 	// get and remove data form background page
-	static remove(key, callback) {
+	static removeGlobal(key, callback) {
 		Extension.sendMessage('removeData', key, callback);
+	}
+
+	// notify background.js to store data
+	static set(key, val, callback) {
+		Extension.sendMessage('tabSet', {
+				key: key,
+				val: val
+			},
+			callback
+		);
+	}
+
+	// retrive data from background page
+	static get(key, callback) {
+		Extension.sendMessage('tabGet', key, callback)
+	}
+
+	// get and remove data form background page
+	static remove(key, callback) {
+		Extension.sendMessage('tabRemove', key, callback);
 	}
 
 	// register callback for messages from background.js
@@ -78,10 +98,10 @@ class Extension {
 				ScCallback(callback, this||{}, parentData.parentTabId, parentData);
 			}
 			if( remove !== false ) {
-				Extension.remove(key, paramedCallback);
+				Extension.removeGlobal(key, paramedCallback);
 			}
 			else {
-				Extension.get(key, paramedCallback)
+				Extension.getGlobal(key, paramedCallback)
 			}
 		});
 	}

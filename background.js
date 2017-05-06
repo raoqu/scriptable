@@ -41,6 +41,26 @@ var GLOABAL_COMMANDS = {
 		return data;
 	},
 
+	'localSet': function(data, sender){
+		if( data && data.key ) {
+			let key = '' + data.key + '__<<' + sender.tab.id;
+			GLOBAL_DATA[data.key] = data.val;
+		}
+	},
+
+	'localGet': function(localKey, sender){
+		let key = '' + localKey + '__<<' + sender.tab.id;
+		let data = key && GLOBAL_DATA[key];
+		return data;
+	},
+
+	'localRemove': function(localKey, sender) {
+		let key = '' + localKey + '__<<' + sender.tab.id;
+		let data = key && GLOBAL_DATA[key];
+		delete GLOBAL_DATA[key];
+		return data;
+	},
+
 	'setExtentionCommand': function(cmd){
 		__contentCommand = cmd;
 	},

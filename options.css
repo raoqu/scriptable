@@ -63,6 +63,11 @@ ul.configlist>li a.item, a.functional {
     background-color: #ccc;
 }
 
+
+ul.configlist>li a.disabled {
+    color: #eee !important;
+}
+
 ul.configlist>li a.active {
     background-color: #2C8F30;
     color: #333;

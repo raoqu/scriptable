@@ -4,6 +4,7 @@ var defaultConfig = {
   key: '-1',
   name: 'default demo',
   domain: '*',
+  status: 'enabled',
   code: 'alert(window.location.href);'
 };
 var config = [defaultConfig];
@@ -33,13 +34,22 @@ function storeCurrentItem() {
       item.name = $('#name').val();
       item.domain = $('#domain').val();
       item.code = $('#code').text();
-      item.type = $('.type-select').val();
+      item.type = $('#type').val();
+      item.status = $('#status').val();
+      let enabled = (item.status != 'disabled');
       if( ! item.name && ! item.domain && ! item.code ) {
         var a = $('li>a.item[key="' + key + '"]');
         if( a && a.length> 0 ) {
           a.parent().remove();
           deleteConfigItem(key);
           item = null;
+        }
+      }
+      else {
+        var a = $('li>a.item[key="' + key + '"]');
+        if( a ) {
+          enabled && a.removeClass('disabled');
+          !enabled && a.addClass('disabled');
         }
       }
     }
@@ -107,7 +117,8 @@ function modifyItem(key) {
   currentConfig = item;
   $('#name').val(item.name);
   $('#domain').val(item.domain);
-  $('.type-select').val(item.type || "click");
+  $('#type').val(item.type || "click");
+  $('#status').val(item.status || "enabled");
   $('.type-select').trigger("chosen:updated");
 
   $('li>a.item').removeClass('active');
@@ -115,9 +126,13 @@ function modifyItem(key) {
   setCode(item.code);
 }
 
-function addListItem(key, name, active) {
+function addListItem(key, name, active, enabled) {
   key = '' + key;
-  $('.configlist').append('<li><a class="item' + (active ? ' active' : '') + '" href="#" key="' + key + '">' + name + '</a></li>');
+  var className = 'item';
+  var id = 'item_' + key;
+  if( active ) className += ' active';
+  if( ! enabled ) className += ' disabled';
+  $('.configlist').append('<li id="' + id + '"><a class="' + className + '" href="#" key="' + key + '">' + name + '</a></li>');
   $('li>a.item[key="' + key + '"]').click(function(e){ 
     var target = $(e.target);
     if( target && target.length > 0 ) {
@@ -134,12 +149,13 @@ function addItem() {
     key: key,
     name: key,
     domain: '',
-    code: ''
+    code: '',
+    status: 'enabled'
   };
   config.push(item);
   modifyItem(key);
 
-  addListItem(key, key, true);
+  addListItem(key, key, true, true);
 }
 
 function setCode(s) {
@@ -160,11 +176,11 @@ function loadConfiguration(cfg) {
   for( i = 0; i < config.length; i ++ ) {
     var item = config[i];
     item.key = '' + (i+1);
-    addListItem(item.key, item.name);
+    addListItem(item.key, item.name, false, (item.status!='disabled'));
   }
   newKey = i + 1;
   if( i > 0 ) {
-    modifyItem('' + config[0].key);
+    modifyItem('' + config[i-1].key);
   }
 }
 
