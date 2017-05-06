@@ -30,7 +30,7 @@ class DownloadUtils {
 
 	//
 	// DownloadUtils.downloadImages('batchId', '.className', 'folder',
-	//   function(task){ console.log(task.id); },
+	//   function(taskId, task){ console.log(task.id); },
 	//   function(batchId){ console.log(batchId); }
 	// );
 	static downloadImages(batch_id, cssFilter, folder, callback, batchCallback) {
@@ -53,7 +53,7 @@ class DownloadUtils {
 		}
 
 		if( tasks.length > 0 ) {
-			BATCH_DOWNLOAD_MANAGER.batchDownload(batch_id, tasks, callback, innerBatchCallback );
+			BATCH_DOWNLOAD_MANAGER.addBatch(batch_id, tasks, callback, innerBatchCallback );
 		}
 		else {
 			// nothing to be download
@@ -129,11 +129,6 @@ class DownloadUtils {
 class BatchDownloadManager extends BatchTaskPool {
 	constructor(limit) {
 		super(limit);
-	}
-
-	// batch download files 
-	batchDownload(batchId, tasks, callback, batchCallback) {
-		this.addBatch(batchId, tasks, callback, batchCallback);
 	}
 
 	// @override: process one task

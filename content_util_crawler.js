@@ -2,6 +2,7 @@ let ScCrawlerOption = {
     excludes: ['.advertise'],
     delay: 0,
     interval: 100,
+    onFork: function(api, times){},
     onPageLoad: function(api, times){},
     onContentReady: function(api, times){},
     process: function(api, times){},
@@ -208,7 +209,7 @@ class ScCrawlerApi {
 
   // fork a new page
   fork(url) {
-    Extension.createTab(url, function(tab){
+    Extension.createTab(url, true, false, function(currentTabId, chidlTabId){
     });
   }
 }

@@ -34,15 +34,15 @@
 
 					storing = true;
 					// post data
-					AjaxUtils.batchPost(postTasks,
-						function(task, result) { 
-							console.log('post complete: ' + task.id); 
-						},
-						function(batchId) { 
-							storing = false;
-							console.log('batch complete: ' + batchId) 
-						}
-					);
+AjaxUtils.batchPost(postTasks,
+	function(task, result) { 
+		console.log('post complete: ' + task.id); 
+	},
+	function(batchId) { 
+		storing = false;
+		console.log('batch complete: ' + batchId) 
+	}
+);
 				} 
 			); 
 		},

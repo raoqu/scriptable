@@ -4,136 +4,153 @@ var __downloadConcerns = {};
 var __contentCommand;
 
 class TabManager {
-  constructor() {
-    this.forks = {}; // {url: parentTabId}
-  }
-  register(url, parentTabId) {
-    this.fork[url] = parentTabId;
-  }
-  get(url) {
-    return this.fork[url];
-  }
-  remove(url) {
-    let parentId = this.fork[url];
-    delete this.fork[url];
-    return parentId;
-  }
+	constructor() {
+		this.forks = {}; // {url: parentTabId}
+	}
+	register(url, parentTabId) {
+		this.fork[url] = parentTabId;
+	}
+	get(url) {
+		return this.fork[url];
+	}
+	remove(url) {
+		let parentId = this.fork[url];
+		delete this.fork[url];
+		return parentId;
+	}
 }
 
 var TAB_CREATE_REGISTRY = new TabManager();
 
 // ----------- commands from content pages --------------
 var GLOABAL_COMMANDS = {
-  'storeData': function(data){
-    if( data && data.key ) {
-      GLOBAL_DATA[data.key] = data.val;
-    }
-  },
+	'storeData': function(data){
+		if( data && data.key ) {
+			GLOBAL_DATA[data.key] = data.val;
+		}
+	},
 
-  'retrieveData': function(key){
-    if( key )  {
-      return GLOBAL_DATA[key];
-    }
-    return undefined;
-  },
+	'retrieveData': function(key){
+		let data = key && GLOBAL_DATA[key];
+		return data;
+	},
 
-  'setExtentionCommand': function(cmd){
-    __contentCommand = cmd;
-  },
+	'removeData': function(key) {
+		let data = key && GLOBAL_DATA[key];
+		delete GLOBAL_DATA[key];
+		return data;
+	},
 
-  'setBadge': function(data, sender){
-    Extension.setBadgeText(data.text, false);
-  },
+	'setExtentionCommand': function(cmd){
+		__contentCommand = cmd;
+	},
 
-  'downloadFile': function(data, sender){
-    chrome.downloads.download({
-        url: data.url,
-        filename: data.filename
-      },
-      function(downloadId){
-        var concern = {
-          id: data.id,
-          url: data.url,
-          filename: data.filename,
-          key: data.key,
-          tabId: sender.tab.id
-        }
-        Extension.watchDownload(downloadId, concern);
-      }
-    );
-  },
+	'setBadge': function(data, sender){
+		Extension.setBadgeText(data.text, false);
+	},
 
-  'registerChild': function(data, sender) {
-    TAB_CREATE_REGISTRY.register(data.url, sender.tab.id);
-  },
+	'downloadFile': function(data, sender){
+		chrome.downloads.download({
+				url: data.url,
+				filename: data.filename
+			},
+			function(downloadId){
+				data.tabId = sender.tab && sender.tab.id;
+				Extension.watchDownload(downloadId, data);
+			}
+		);
+	},
 
-  'getParentTab': function(data, sender) {
-    let parentId = TAB_CREATE_REGISTRY.get(data.url);
-    return {
-      parentId: parentId
-    };
-  }
+	// Create a new tab
+	//	data.url
+	//	data.active
+	//	data.selected
+	'createTab': function(data, sender) {
+		chrome.tabs.create({
+				url: data.url,
+				active: (data.active===false ? false : true),
+				selected: (data.selected===false ? false : true)
+			},
+			function(tab) {
+				let key = 'parentTab_' + tab.id;
+				let val = sender.tab.id;
+				GLOBAL_DATA[key] = val;
+			}
+		);
+	},
+
+	// send a message to specified tab
+	'sendTabMessage': function(data, sender) {
+		data = data || {};
+		let message = data.message;
+		let tabId = data.tabId;
+		data = data.data;
+
+		if( tabId && message ) {
+			let tabData = {};
+			tabData.tabMessageData = data;
+			tabData.fromTabId = sender.tab.id;
+			Extension.sendMessageToTab(tabId, message, tabData, function(rsp){
+				return rsp
+			});
+		}
+	},
+
+	'getCurrentTabId': function(data, sender) {
+		return sender.tab.id;
+	}
 
 };
 
 for( let key in GLOABAL_COMMANDS ) {
-  Extension.onMessage(key, GLOABAL_COMMANDS[key]);
+	Extension.onMessage(key, GLOABAL_COMMANDS[key]);
 }
 
 //--------------------- Extension listeners -----------------------------------
 
-var state = {value:0};
-
 // message listener
 chrome.runtime.onMessage.addListener(
-  function(request, sender, sendResponse){
-    var rsp;
-    if( request && request.noryal_message) {
-      var callback = MESSAGE_REGISTRY[request.noryal_message];
-      if( callback) {
-        rsp = callback(request.noryal_data, sender);
-      }
-    }
-    rsp = rsp || {};
-    sendResponse(rsp);
-  }
+	function(request, sender, sendResponse){
+		let rsp = undefined;
+		if( request && request.noryal_message) {
+			let message = request.noryal_message;
+			let data = request.noryal_data;
+			
+			var callback = MESSAGE_REGISTRY[message];
+			rsp = ScCallback(callback, this||{}, data, sender);
+		}
+		rsp = rsp || {};
+		sendResponse(rsp);
+	}
 );
 
 chrome.browserAction.onClicked.addListener(function(tab) {
-  state.value = 0;
-  if( state.value ) {
-    state.value = 0;
-    Extension.setBadgeText('', true);
-  }
-  else {
-    state.value= 1;
-    Extension.runCommand();
-  }
+	Extension.runCommand();
 });
 
 // monitoring download complete / failed event
 // download.onChanged event tells the real filename downloaded
 chrome.downloads.onChanged.addListener(function(delta){
-  if( delta ) {
-    var key = '' + delta.id;
-    var concern = __downloadConcerns[key];
-    if( concern ) {
-      if( delta.filename )
-        concern.localfile = delta.filename.current;
-      if( delta.state ) {
-        var state = delta.state.current;
-        if( state == 'interrupted' || state == 'complete') {
-          let successMapping = {
-            'interrupted': false,
-            'complete': true
-          }
-          concern.success = successMapping[state];
+	if( delta ) {
+		let key = '' + delta.id;
+		let concern = __downloadConcerns[key];
+		delete __downloadConcerns[key];
 
-          Extension.sendMessage(concern.tabId, 'onFileDownload', concern);
-          delete __downloadConcerns[key];
-        }
-      }
-    }
-  }
+		if( concern ) {
+			if( delta.filename )
+				concern.localfile = delta.filename.current;
+
+			let state = delta.state && delta.state.current;
+			if( state == 'interrupted' || state == 'complete') {
+				let successMapping = {
+					'interrupted': false,
+					'complete': true
+				}
+				concern.success = successMapping[state];
+
+				Extension.sendMessageToTab(concern.tabId, 'onFileDownload', concern);
+			}
+		}
+	}
 });
 //-----------------------------------------------------

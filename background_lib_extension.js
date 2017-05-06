@@ -1,14 +1,14 @@
 
 // Chrome extension wrapper for background page
 class Extension {
-  static sendMessage(tabId, msg, data, callback) {
-    chrome.tabs.sendMessage(tabId, 
-      {
-        noryal_message: msg,
-        noryal_data: data
-      }, 
-      function(rsp) {
-        if( callback ) callback(rsp);
+  static sendMessageToTab(tabId, msg, data, callback) {
+    let wrappedMessage = {
+      noryal_message: msg,
+      noryal_data: data
+    };
+
+    chrome.tabs.sendMessage(tabId, wrappedMessage, function(rsp) {
+        ScCallback(callback, this||{}, rsp);
       }
     );
   }

@@ -69,9 +69,6 @@ function executeForType(type) {
         }
       }
     }
-    if (!found) {
-      console.log('not found in ' + config.length + ' items');
-    }
   }
 }
 
