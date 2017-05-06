@@ -72,6 +72,10 @@ class MergeableTaskPool {
     this.cached = new MapArray();
   }
 
+  setCount(limit) {
+    this.limit = DefaultUtils.number(limit, 3);
+  }
+
   // add a task into pool, make it queued on running pool full filled
   push(key, task) {
     // key existed in running pool, need no wait for queue
@@ -172,11 +176,15 @@ class BatchTaskPool {
     this.batchCallbacks = {}; // { batchId: batchCallback }
     this.batchTasks = {}; // { batchId: { taskId: } }
     this.taskPool = new MergeableTaskPool({
-      limit: limit || 5,
+      limit: limit || 3,
       process: this.process.bind(this),
       taskCallback: this.onTaskComplete.bind(this),
       complete: this.onTaskPoolIdle.bind(this)
     });
+  }
+
+  setCount(limit) {
+    this.taskPool.setCount(limit);
   }
 
   // add single task

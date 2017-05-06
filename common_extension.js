@@ -69,26 +69,31 @@ class Extension {
 
 	// Get parent tab id
 	//	child - parent tab relation must be registered by createTab
-	//	callback(parentTabId)
-	static getParentTabId(callback, remove) {
+	//	callback(parentTabId, attachedData)
+	//		attachedData: data passed by parent tab when create the current tab
+	static getParentTabData(callback, remove) {
 		Extension.getCurrentTabId(function(tabId){
 			let key = 'parentTab_' + tabId;
+			let paramedCallback = function(parentData){
+				ScCallback(callback, this||{}, parentData.parentTabId, parentData);
+			}
 			if( remove !== false ) {
-				Extension.remove(key, callback);
+				Extension.remove(key, paramedCallback);
 			}
 			else {
-				Extension.get(key, callback)
+				Extension.get(key, paramedCallback)
 			}
 		});
 	}
 
 	// Create a new tab
 	//	callback(currentTabId, childTabId)
-	static createTab(url, active, selected, callback) {
+	static createTab(url, active, selected, data, callback) {
 		Extension.sendMessage('createTab', {
 			url: url,
 			active: active,
-			selected: selected
+			selected: selected,
+			data: data
 		}, callback);
 	}
 
@@ -96,6 +101,7 @@ class Extension {
 	static watchMessages() {
 		if( __messageWatching )
 			return;
+		__messageWatching = true;
 
 		chrome.runtime.onMessage.addListener(
 			function(request, sender, sendResponse){

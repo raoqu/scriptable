@@ -2,7 +2,7 @@ let ScCrawlerOption = {
     excludes: ['.advertise'],
     delay: 0,
     interval: 100,
-    onFork: function(api, times){},
+    onFork: function(api, times, data, parentTab){},
     onPageLoad: function(api, times){},
     onContentReady: function(api, times){},
     process: function(api, times){},
@@ -27,8 +27,8 @@ class ScCrawler {
     this.state = new ScCrawlerInnerState();
     this.tasks = ['init', 'preprocess', 'process', 'waitDownload', 'store', 'complete'];
     this.api = new ScCrawlerApi(this);
-    this.delay = DefaultUtil.number(this.options.delay, 0);
-    this.interval = DefaultUtil.number(this.options.interval, 10);
+    this.delay = DefaultUtils.number(this.options.delay, 0);
+    this.interval = DefaultUtils.number(this.options.interval, 10);
   }
   
   // 爬虫入口
@@ -208,8 +208,8 @@ class ScCrawlerApi {
   }
 
   // fork a new page
-  fork(url) {
-    Extension.createTab(url, true, false, function(currentTabId, chidlTabId){
+  fork(url, active, data) {
+    Extension.createTab(url, active, false, data, function(currentTabId, chidlTabId){
     });
   }
 }

@@ -154,4 +154,5 @@ class BatchDownloadManager extends BatchTaskPool {
 	}
 }
 
-var BATCH_DOWNLOAD_MANAGER = new BatchDownloadManager(5);
+var BATCH_DOWNLOAD_MANAGER = new BatchDownloadManager(3);
+ 

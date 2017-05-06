@@ -66,6 +66,7 @@ var GLOABAL_COMMANDS = {
 	//	data.active
 	//	data.selected
 	'createTab': function(data, sender) {
+		let attachedData = data.data;
 		chrome.tabs.create({
 				url: data.url,
 				active: (data.active===false ? false : true),
@@ -73,8 +74,9 @@ var GLOABAL_COMMANDS = {
 			},
 			function(tab) {
 				let key = 'parentTab_' + tab.id;
-				let val = sender.tab.id;
-				GLOBAL_DATA[key] = val;
+				let val = attachedData;
+				attachedData.parentTabId = sender.tab.id;
+				GLOBAL_DATA[key] = attachedData;
 			}
 		);
 	},
@@ -115,7 +117,7 @@ chrome.runtime.onMessage.addListener(
 		if( request && request.noryal_message) {
 			let message = request.noryal_message;
 			let data = request.noryal_data;
-			
+
 			var callback = MESSAGE_REGISTRY[message];
 			rsp = ScCallback(callback, this||{}, data, sender);
 		}

@@ -4,16 +4,22 @@ class Html {
   // Remove dom elements from document
   //  Html.remove(['img', 'a', 'div.ad']);
   //  Html.remove('div.ad');
-  static remove(cssFilterArray) {
-    return HtmlInnerService.distribute(cssFilterArray, 'remove');
+  static remove(filters) {
+    HtmlInnerService.distribute(filters, function(nodes) { nodes.remove(); } );
   }
   // hide dom elements in document
-  static hide(cssFilterArray) {
-    return HtmlInnerService.distribute(cssFilterArray, 'hide');
+  static hide(filters) {
+    HtmlInnerService.distribute(filters, function(nodes) { nodes.hide(); } );
   }
   // hide dom elements in document
-  static show(cssFilterArray) {
-    return HtmlInnerService.distribute(cssFilterArray, 'show');
+  static show(filters) {
+    HtmlInnerService.distribute(filters, function(nodes) { nodes.show(); } );
+  }
+
+  static click(filters) {
+    HtmlInnerService.distribute(filters, function(nodes) {
+      Html.dispatchMouseEvent(nodes[0], 'click', true, true);
+    });
   }
 
   // dispatch mouse event on specified dom
@@ -56,16 +62,23 @@ class Html {
 // html dom 内部服务
 class HtmlInnerService {
 
-  static distribute(cssFilterArray, type) {
+  static distribute(cssFilterArray, callback) {
     if( cssFilterArray instanceof Array && cssFilterArray.length > 0 ) {
       cssFilterArray.map(function(cssFilter){
-        HtmlInnerService.removeElement(cssFilter, type);
+        HtmlInnerService.process($(cssFilter), callback);
       });
 
     }
     else {
       var cssFilter = cssFilterArray;
-      HtmlInnerService.removeElement(cssFilter, type);
+      HtmlInnerService.process($(cssFilter), callback);
+    }
+  }
+
+  // callback(jqNodes)
+  static process(jqNodes, callabck) {
+    if( jqNodes ) {
+      ScCallback(callabck, 1, jqNodes);
     }
   }
 

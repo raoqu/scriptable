@@ -113,7 +113,7 @@ class BaseUtils {
   }
 }
 
-class DefaultUtil {
+class DefaultUtils {
   // default value
   static number(val, defaultVal) {
     if( typeof val == 'number') {
