@@ -41,22 +41,22 @@ var GLOABAL_COMMANDS = {
 		return data;
 	},
 
-	'localSet': function(data, sender){
+	'tabSet': function(data, sender){
 		if( data && data.key ) {
 			let key = '' + data.key + '__<<' + sender.tab.id;
-			GLOBAL_DATA[data.key] = data.val;
+			GLOBAL_DATA[key] = data.val;
 		}
 	},
 
-	'localGet': function(localKey, sender){
+	'tabGet': function(localKey, sender){
 		let key = '' + localKey + '__<<' + sender.tab.id;
-		let data = key && GLOBAL_DATA[key];
+		let data = GLOBAL_DATA[key];
 		return data;
 	},
 
-	'localRemove': function(localKey, sender) {
+	'tabRemove': function(localKey, sender) {
 		let key = '' + localKey + '__<<' + sender.tab.id;
-		let data = key && GLOBAL_DATA[key];
+		let data = GLOBAL_DATA[key];
 		delete GLOBAL_DATA[key];
 		return data;
 	},

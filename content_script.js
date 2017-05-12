@@ -44,6 +44,7 @@ $(function () {
 });
 
 function executeForType(type) {
+  GLOBAL_SCRIPTABLE_ENTRY = type;
   if (config.length < 1) {
     reloadConfig();
   }
@@ -59,7 +60,7 @@ function executeForType(type) {
       pattern = pattern.replace(/\*/g, '.*');
       pattern = pattern.replace(/\?/g, '.?');
 
-      if (config[i].type == type && config[i].status != 'disabled') {
+      if ((config[i].type == type || config[i].type == 'both') && config[i].status != 'disabled') {
         var code = config[i].code;
         name = config[i].name;
         var regx = eval('/' + pattern + '/');

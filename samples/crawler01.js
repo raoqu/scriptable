@@ -3,9 +3,7 @@
 	let storing = false;
 
 	extentionCrawl({
-		onPageLoad: function(api, times) { Html.remove([.advertisement]) }, 
-
-		process: function(api, times) {    
+		init: function(api, times, tabData, parentData, parentTabId) {
 			api.downloadImages( '.Card', 'zhihu',
 				function(task, result) { 
 					console.log('download:' + task.id); 

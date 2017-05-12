@@ -73,7 +73,7 @@ class MergeableTaskPool {
   }
 
   setCount(limit) {
-    this.limit = DefaultUtils.number(limit, 3);
+    this.limit = BaseUtils.defaultNumber(limit, 3);
   }
 
   // add a task into pool, make it queued on running pool full filled

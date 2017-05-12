@@ -1,14 +1,58 @@
 let ScCrawlerOption = {
 		excludes: ['.advertise'],
-		delay: 0,
 		interval: 1,
-		onFork: function(api, times, data, parentTabId){},
-		onPageLoad: function(api, times){},
-		onContentReady: function(api, times){},
-		process: function(api, times){},
-		postProcess: function(api, times){},
-		abort: function(api, times) {},
+		multiple: true,
+		init: function(api, times, data, parentTabId){},
 		complete: function(api, times) {}
+}
+
+class ScCrawlerState {
+	constructor() {
+		this.states = ['prepare', 'init', 'complete'];
+		this.customStates = [];
+		this.currentState = this.states[0];
+		this.stateFrom = 'default'; // default, custom
+		this.times = 0;
+	}
+
+	nextState() {
+		this.times = 0;
+		if( this.currentState ) {
+			if( this.stateFrom == 'default' ) {
+				this.states.shift();
+			}
+			else if( this.stateFrom == 'custom' ){
+				this.customStates.shift();
+			}
+			this.currentState = undefined;
+			this.stateFrom = 'none';
+		}
+
+		if( this.customStates.length ) {
+			this.stateFrom = 'custom';
+			this.currentState = this.customStates[0];
+		}
+		else if( this.states.length) {
+			this.stateFrom = 'default';
+			this.currentState = this.states[0];
+		}
+
+		return this.currentState;
+	}
+
+	addCustomState(state) {
+		if( state ) {
+			this.customStates.push(state);
+		}
+	}
+
+	isCustomState() {
+		return this.stateFrom == 'custom';
+	}
+
+	increaseCount() {
+		this.times ++;
+	}
 }
 
 /**
@@ -24,107 +68,106 @@ class ScCrawler {
 	constructor(options) {
 		this.options = options || {};
 		this.content = {};
-		this.state = new ScCrawlerInnerState();
-		this.tasks = ['prepare', 'init', 'preprocess', 'process', 'waitDownload', 'store', 'complete'];
+		this.state = new ScCrawlerState();
 		this.api = new ScCrawlerApi(this);
-		this.delay = DefaultUtils.number(this.options.delay, 0);
-		this.interval = DefaultUtils.number(this.options.interval, 1);
+		this.delay = BaseUtils.defaultNumber(this.options.delay, 0);
+		this.interval = BaseUtils.defaultNumber(this.options.interval, 1);
 		this.onceEntry = {};
 		// init state
 		this.parentTabId = undefined;
 		this.initData = undefined;
 		// prepare state
-		this.blockState = {};
-		this.firstInit();
+		this.locks = {};
+		this.customLocks = {};
 	}
 	
 	// 爬虫入口
 	crawl() {
-		this.stage();
+		this.schedule();
 	}
 
-	currentStage() {
-		return this.tasks.length > 0 ? this.tasks[0] : undefined;
+	currentState() {
+		return this.state.currentState;
 	}
 
-	stage() {
+	schedule() {
 		// 分发步骤回调函数
-		let ret = this.stageDistribute();
+		let ret = this.distribute();
 		// 每一个过程，如果回调返回false都会终结整个爬取过程
 		if ( ret === false ) {
-			terminate();
+			return null;
 		}
 
-		if( this.willBlock('__internalDelay') ) {
-			this.state.times ++;
-			return this.delayCurrentStage(this.state.delayMs || 100);
-		}
-
-		if( this.willBlock()) {
-			return this.delayCurrentStage(this.interval);
+		this.state.increaseCount();
+		if( this.isBlocked()) {
+			return this.scheduleLater();
 		}
 
 		return this.nextStage();
 	}
 
-	stageDistribute() {
-		var stageName = this.currentStage();
-		if( stageName == 'prepare') {
-			return this.stageCall(this.innerStagePrepare, this);
+	distribute() {
+		let stateName = this.currentState();
+		if( ! stateName ) {
+			return false;
 		}
-		if( stageName == 'init') { 
-			return this.stageCall(this.options.onPageLoad);
-		}
-		else if( stageName == 'preprocess') { 
-			return this.stageCall(this.options.onContentReady);    
-		}
-		else if( stageName == 'process') { 
-			let ret = this.stageCall(this.options.process);
-			return ret;
-		}
-		else if( stageName == 'waitDownload') {
-			return this.stageCall(this.waitDownload, this);
-		}
-		else if( stageName == 'store') {
-			return this.stageCall(this.options.store, this);
-		}
-		else if( stageName == 'complete') { 
-			let ret = this.stageCall(this.options.complete)
 
-			if( ! this.willBlock()) {
-				let theData = this.parentData || {};
-				theData.currentUrl = window.location.href;
-				Extension.sendToTab(this.parentTabId, 'child_complete', theData, function(){
-					window.close();
-				});
+		if( this.state.isCustomState()) {
+			// custom tasks
+			let func = this.options[stateName];
+			if( BaseUtils.isFunction(func)) {
+				return this.runState(func, this.options);
 			}
+		}
+		else {
+			if( stateName == 'prepare') {
+				return this.runState(this.prepareState, this);
+			}
+			else if( stateName == 'init') {
+				return this.runState(this.initState, this);
+			}
+			else if( stateName == 'complete') { 
+				let ret = this.runState(this.options.complete)
+				// notify parent tab that child crawler completed
+				if( ! this.isBlocked() && this.parentTabId ) {
+					let theData = this.parentData || {};
+					theData.currentUrl = window.location.href;
+					Extension.sendToTab(this.parentTabId, 'child_complete', theData, function(){
+						window.close();
+					});
+				}
 
-			return ret;
+				return ret;
+			}
 		}
 		return undefined;
 	}
 
-	stageCall(callback, who) {
-		let stageName = this.currentStage();
-		let times = this.state.times;
-		//console.log(stageName + '---------');
-		let ret = ScCallback(callback, who||this.options, this.api, times);
-		return ret;
+	runState(callback, who) {
+		return ScCallback(callback, who||this.options, this.api, this.state.times);
 	}
 
 	block(flag) {
-		this.blockState[flag] = true;
+		this.locks[flag] = true;
 	}
 
 	clear(flag) {
-		delete this.blockState[flag];
+		delete this.locks[flag];
 	}
 
-	willBlock(flag) {
+	customBlock(flag) {
+		this.customLocks[flag] = true;
+	}
+
+	customClear(flag) {
+		delete this.customLocks[flag];
+	}
+
+	isBlocked(flag) {
 		if( flag ) {
-			return !! this.blockState[flag];
+			return !! this.locks[flag];
 		}
-		return !BaseUtils.isEmpty(this.blockState);
+		return !BaseUtils.isEmpty(this.locks) || !BaseUtils.isEmpty(this.customLocks);
 	}
 
 	watchLogMessages() {
@@ -133,67 +176,58 @@ class ScCrawler {
 		});
 	}
 
-	firstInit() {
-		this.block('getParentData');
-		if( this.options.multiple ) {
-			this.block('getTabData');
-			this.watchLogMessages();
-		}
-	}
-
 	getParentCrawlerTabData() {
 		let self = this;
+		self.block('___getParentCrawlerTabData');
 		Extension.getParentTabData(function(parentTabId, attachedData){
 			if( parentTabId ) {
 				self.parentData = attachedData;
 				self.parentTabId = parentTabId;
 			}
-			self.clear('getParentData');
+			self.clear('___getParentCrawlerTabData');
 		});
 	}
 
 	getSavedCrawlerTabData() {
 		let self = this;
 		if( this.options.multiple) {
+			self.block('___getSavedCrawlerTabData')
+			self.watchLogMessages();
 			Extension.remove('__crawlerData', function(savedData){
 				let data = undefined;
-				if( savedData ) {
+				if( savedData && BaseUtils.isNumber(savedData.times)) {
 					data = savedData;
+					data.triggered = self.api.isManual() || data.triggered;
 					data.times ++;
 				}
 				else {
 					data = self.options.initData || {};
+					data.triggered = self.api.isManual();
 					data.times = 0;
 				}
 
 				self.tabData = data;
 				Extension.set('__crawlerData', data, function(){
-					self.clear('getTabData');
+					self.clear('___getSavedCrawlerTabData');
 				});
 			});
 		}
 	}
 
 	// first step, check whether this crawler created by parent tab or 
-	innerStagePrepare(api, times) {
+	prepareState(api, times) {
 		let self = this;
-
-		this.once('innerStagePrepare', function(){
+		this.once('___crawler_prepareState', function(){
 			self.getParentCrawlerTabData();
 			self.getSavedCrawlerTabData();
 		});
-
-		if( this.willBlock('getParentData') || this.willBlock('getTabData')) {
-			return api.delay(1);
-		}
-		
-		this.once('onFork', function() {
-			ScCallback(self.options.onFork, self, self.api, self.state.times, self.tabData, self.parentData, self.parentTabId);
-		});
 	}
 
-	stageClearState() {
-		this.clear('__internalDelay');
+	initState(api, times) {
+		let self = this;
+		this.once('___crawler_initState', function() {
+			return ScCallback(self.options.init, self, self.api, self.state.times, self.tabData, self.parentData, self.parentTabId);
+		});
 	}
 
 	once(key, callback) {
@@ -203,20 +237,26 @@ class ScCrawler {
 		}
 	}
 
-	delayCurrentStage(delayMs) {
-		this.stageClearState();
-		if( !delayMs) {
-			return this.stage();
-		}
-
-		setTimeout(  this.stage.bind(this), delayMs);
+	delaySchedule(millionSeconds) {
+		this.block('__internalDelay');
+		this.delay = millionSeconds || 100;
 	}
 
-	// go next stage
+	scheduleLater() {
+		let delayMs = this.delay || this.interval;
+		this.clear('__internalDelay');
+		this.delay = 0;
+
+		setTimeout(  this.schedule.bind(this), delayMs);
+	}
+
+	// go next state
 	nextStage() {
-		this.state.times = 0;
-		this.tasks && this.tasks.length && this.tasks.shift();
-		this.delayCurrentStage(this.interval);
+		let state = this.state.nextState();
+		if( ! state ) {
+			return false;
+		}
+		this.scheduleLater();
 	}
 
 	onDownloadBegin() {
@@ -226,7 +266,7 @@ class ScCrawler {
 	// wait download to be complete
 	waitDownload(api, times) {
 		if( this.state.download) {
-			return api.delay(50);
+			return this.delaySchedule(50);
 		}
 	}
 
@@ -235,14 +275,6 @@ class ScCrawler {
 
 	onBatchDownload(batchId) {
 		this.state.download = false;
-	}
-}
-
-// 爬虫内部状态
-class ScCrawlerInnerState {
-	constructor() {
-		this.state = 'init';
-		this.times = 0; // 在当前状态已执行的次数，每次 api.delay 加1
 	}
 }
 
@@ -282,8 +314,8 @@ class ScCrawlerApi {
 		this.apiOnceEntry = {};
 	}
 
-	next() {
-		this.crawler.nextStage();
+	isManual() {
+		return (GLOBAL_SCRIPTABLE_ENTRY == 'click');
 	}
 
 	html(node) {
@@ -304,8 +336,12 @@ class ScCrawlerApi {
 
 	delay(millionSeconds) {
 		let crawler = this.crawler;
-		crawler.block('__internalDelay');
-		crawler.state.delayMs = millionSeconds || 100;
+		crawler.delaySchedule(millionSeconds);
+	}
+
+	addState(state) {
+		let crawler = this.crawler;
+		crawler.state.addCustomState(state);
 	}
 
 	// batch download tasks
@@ -334,7 +370,6 @@ class ScCrawlerApi {
 		folder = folder || 'scriptable';
 
 		crawler.onDownloadBegin();
-
 
 		let onSingleFileDownload = function(task, result){
 			ScCallback(crawler.onFileDownload, crawler, task, result);
@@ -365,15 +400,15 @@ class ScCrawlerApi {
 	}
 
 	close() {
-		this.crawler.blockState = {}
+		this.crawler.customLocks = {}
 	}
 
 	block(flag) {
-		this.crawler.block(flag);
+		this.crawler.customBlock(flag);
 	}
 
 	clear(flag) {
-		this.crawler.clear(flag);
+		this.crawler.customClear(flag);
 	}
 
 	once(key, callback) {

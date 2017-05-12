@@ -2,7 +2,7 @@
 // lib/base.js
 // lib/linked_set.js
 // lib/map_array.js
-
+var GLOBAL_SCRIPTABLE_ENTRY = 'load';
 var base_util_RandomSource = [
   '0','1','2','3','4','5','6','7','8','9',
   'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
@@ -27,6 +27,25 @@ class BaseUtils {
   // is array
   static isArray(arr) {
     return arr && (Array.isArray(arr) || Number.isInteger(arr.length));
+  }
+
+  static isFunction(functionToCheck) {
+    let getType = {};
+    return functionToCheck && getType.toString.call(functionToCheck) === '[object Function]';
+  }
+
+  static defaultValue(val, defaultVal) {
+    return BaseUtils.isValueUndefined(val) ? defaultVal : val;
+  }
+
+  // default value
+  static defaultNumber(val, defaultVal) {
+    return ( typeof val == 'number') ? val : defaultVal;
+  }
+
+  //
+  static isManualTriggered() {
+    return (GLOBAL_SCRIPTABLE_ENTRY == 'click');
   }
 
   // generate random string with specified length
@@ -110,17 +129,6 @@ class BaseUtils {
       args.shift();
     }
     return args;
-  }
-}
-
-class DefaultUtils {
-  // default value
-  static number(val, defaultVal) {
-    if( typeof val == 'number') {
-      return val;
-    }
-
-    return defaultVal;
   }
 }
 
