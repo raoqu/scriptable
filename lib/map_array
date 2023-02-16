@@ -1,0 +1,39 @@
+
+/*
+  common map formed of key -> array
+*/
+class MapArray {
+  constructor() {
+    this.map = {};
+  }
+
+  // add obj to the end of array by key
+  add(key, obj) {
+    key = key || BaseUtils.uniqId();
+    let current = this.map[key] || [];
+    current.push(obj);
+    this.map[key] = current;
+    return current;
+  }
+
+  // return array by key
+  get(key) {
+    return this.map[key];
+  }
+
+  remove(key) {
+    let obj = this.map[key];
+    delete this.map[key];
+    return obj;
+  }
+
+  // run callback(item) for each obj of the key
+  foreach(key, callback) {
+    let array = this.get(key);
+    BaseUtils.each(array, callback);
+  }
+
+  isEmpty() {
+    return BaseUtils.isEmpty(this);
+  }
+}

@@ -1,0 +1,123 @@
+body {
+    margin: 0;
+    font-size: 12px
+}
+
+div.leftside {
+    float: left;
+    width: 300px;
+    height: 100%;
+    vertical-align: top;
+    overflow: hidden;
+}
+
+div.toolbar {
+
+}
+
+div.rightside {
+    width: 100%;
+    padding:1px 16px 0 0;
+    height:100%;
+}
+
+div.rightside form {
+    padding-top: 16px;
+    padding-left: 310px;
+    width: 100%;
+    margin: 0;
+    height: 100px;
+}
+
+ul.configlist {
+    display: inline-block;
+    position: absolute;
+    width: 300px;
+    top: 34px;
+    left: 0;
+    bottom: 0;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    background-color: #ddd;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+ul.configlist>li {
+    margin:0;
+    height: 30px;
+    border-top: solid 1px #eee;
+    border-left: solid 1px #eee;
+    border-bottom: solid 1px #bbb;
+    border-right: solid 1px #bbb;
+
+}
+
+ul.configlist>li a.item, a.functional {
+    padding: 2px 10px;
+    display: block;
+    color: #000;
+    text-decoration: none;
+    line-height: 24px;
+    background-color: #ccc;
+}
+
+
+ul.configlist>li a.disabled {
+    color: #eee !important;
+}
+
+ul.configlist>li a.active {
+    background-color: #2C8F30;
+    color: #333;
+    background-color: #ddd;
+}
+
+ul.configlist>li a.item:hover:not(.active) {
+    background-color: #ddd;
+    color: #555;
+}
+
+a.functional  {
+    vertical-align: top;
+    display: inline-block;
+    width: 100px;
+	background-color: #d3394c;
+	text-align: center;
+    padding: 8px 16px;
+    line-height: 18px;
+	color: #fff;
+	text-decoration: none;
+    margin: 0;
+}
+a.functional:hover {
+	background-color: #722040;
+	color: #fff;
+}
+
+#type_chosen {
+    width: 300px;
+}
+
+.code-column {
+    display: inline-block;
+    padding:5px;
+    width: 100%;
+}
+.code-column h2{
+    font-size:15px;
+    background:yellow;
+    width: 100%;
+}
+.codeview {
+    width:200px;
+    height:400px;
+    border:1px solid #ccc;
+    position:relative;
+    width: 100%;
+}
+
+span.gray {
+    color: #ccc;
+}
